@@ -126,7 +126,7 @@ La aplicación valida las variables críticas al iniciar. Si falta alguna de ell
 Clonar el repositorio:
 
 ```bash
-git clone URL_DEL_REPOSITORIO
+git clone https://github.com/EstebanOyarzunRomano/shipnow-backend.git
 ```
 
 Ingresar al proyecto:
