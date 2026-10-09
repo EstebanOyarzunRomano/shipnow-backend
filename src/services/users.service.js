@@ -1,5 +1,11 @@
+
 import userRepository from "../repositories/users.repository.js";
 import { USER_ROLES } from "../constants/index.js";
+import {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} from "../errors/app.error.js";
 
 class UserService {
   async getAllUsers(filters = {}) {
@@ -10,28 +16,42 @@ class UserService {
     const user = await userRepository.getById(id);
 
     if (!user) {
-      throw new Error("Usuario no encontrado");
+      throw new NotFoundError("Usuario no encontrado");
     }
 
     return user;
   }
 
   async createUser(userData) {
-    const existingUser = await userRepository.getByEmail(userData.email);
-
-    if (existingUser) {
-      throw new Error("Ya existe un usuario con ese email");
+    if (
+      !userData ||
+      typeof userData.email !== "string" ||
+      !userData.email.trim()
+    ) {
+      throw new ValidationError("El email es obligatorio");
     }
+
+    const email = userData.email.trim().toLowerCase();
 
     const validRoles = Object.values(USER_ROLES);
 
-    if (userData.role && !validRoles.includes(userData.role)) {
-      throw new Error("Rol de usuario inválido");
+    if (
+      userData.role !== undefined &&
+      !validRoles.includes(userData.role)
+    ) {
+      throw new ValidationError("Rol de usuario inválido");
+    }
+
+    const existingUser = await userRepository.getByEmail(email);
+
+    if (existingUser) {
+      throw new ConflictError("Ya existe un usuario con ese email");
     }
 
     const data = {
       ...userData,
-      role: userData.role || USER_ROLES.USER,
+      email,
+      role: userData.role ?? USER_ROLES.USER,
     };
 
     return userRepository.create(data);
@@ -41,35 +61,50 @@ class UserService {
     const existingUser = await userRepository.getById(id);
 
     if (!existingUser) {
-      throw new Error("Usuario no encontrado");
+      throw new NotFoundError("Usuario no encontrado");
     }
 
-    if (userData.role) {
-      const validRoles = Object.values(USER_ROLES);
+    if (
+      userData.role !== undefined &&
+      !Object.values(USER_ROLES).includes(userData.role)
+    ) {
+      throw new ValidationError("Rol de usuario inválido");
+    }
 
-      if (!validRoles.includes(userData.role)) {
-        throw new Error("Rol de usuario inválido");
+    const data = { ...userData };
+
+    if (userData.email !== undefined) {
+      if (
+        typeof userData.email !== "string" ||
+        !userData.email.trim()
+      ) {
+        throw new ValidationError("El email no puede estar vacío");
       }
-    }
 
-    if (userData.email && userData.email !== existingUser.email) {
-      const userWithSameEmail = await userRepository.getByEmail(
-        userData.email
-      );
+      const email = userData.email.trim().toLowerCase();
 
-      if (userWithSameEmail) {
-        throw new Error("Ya existe un usuario con ese email");
+      if (email !== existingUser.email) {
+        const userWithSameEmail =
+          await userRepository.getByEmail(email);
+
+        if (userWithSameEmail) {
+          throw new ConflictError(
+            "Ya existe un usuario con ese email"
+          );
+        }
       }
+
+      data.email = email;
     }
 
-    return userRepository.updateById(id, userData);
+    return userRepository.updateById(id, data);
   }
 
   async deleteUser(id) {
     const user = await userRepository.deleteById(id);
 
     if (!user) {
-      throw new Error("Usuario no encontrado");
+      throw new NotFoundError("Usuario no encontrado");
     }
 
     return user;

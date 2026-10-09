@@ -1,28 +1,57 @@
 import productRepository from "../repositories/products.repository.js";
 import { PRODUCT_STATUS } from "../constants/index.js";
+import {
+  ValidationError,
+  NotFoundError,
+} from "../errors/app.error.js";
 
 class ProductService {
   async getAllProducts(filters = {}) {
-    return productRepository.getAll(filters);
+    const { onlyAvailable, ...repositoryFilters } = filters;
+
+    if (onlyAvailable === "true") {
+      repositoryFilters.status = PRODUCT_STATUS.AVAILABLE;
+    }
+
+    const products = await productRepository.getAll(repositoryFilters);
+
+    if (onlyAvailable === "true") {
+      return products.filter((product) => product.stock > 0);
+    }
+
+    return products;
   }
 
   async getProductById(id) {
     const product = await productRepository.getById(id);
 
     if (!product) {
-      throw new Error("Producto no encontrado");
+      throw new NotFoundError("Producto no encontrado");
     }
 
     return product;
   }
 
   async createProduct(productData) {
-    if (productData.price < 0) {
-      throw new Error("El precio no puede ser negativo");
+    if (
+      typeof productData.price !== "number" ||
+      !Number.isFinite(productData.price) ||
+      productData.price < 0
+    ) {
+      throw new ValidationError(
+        "El precio debe ser un número mayor o igual a cero"
+      );
     }
 
-    if (productData.stock < 0) {
-      throw new Error("El stock no puede ser negativo");
+    if (
+      typeof productData.stock !== "number" ||
+      !Number.isFinite(productData.stock) ||
+      !Number.isInteger(productData.stock) ||
+      productData.stock < 0
+    ) {
+      throw new ValidationError(
+        "El stock debe ser un número entero mayor o igual a cero"
+      );
     }
 
     const data = {
@@ -40,15 +69,34 @@ class ProductService {
     const existingProduct = await productRepository.getById(id);
 
     if (!existingProduct) {
-      throw new Error("Producto no encontrado");
+      throw new NotFoundError("Producto no encontrado");
     }
 
-    if (productData.price !== undefined && productData.price < 0) {
-      throw new Error("El precio no puede ser negativo");
+    if (
+      productData.price !== undefined &&
+      (
+        typeof productData.price !== "number" ||
+        !Number.isFinite(productData.price) ||
+        productData.price < 0
+      )
+    ) {
+      throw new ValidationError(
+        "El precio debe ser un número mayor o igual a cero"
+      );
     }
 
-    if (productData.stock !== undefined && productData.stock < 0) {
-      throw new Error("El stock no puede ser negativo");
+    if (
+      productData.stock !== undefined &&
+      (
+        typeof productData.stock !== "number" ||
+        !Number.isFinite(productData.stock) ||
+        !Number.isInteger(productData.stock) ||
+        productData.stock < 0
+      )
+    ) {
+      throw new ValidationError(
+        "El stock debe ser un número entero mayor o igual a cero"
+      );
     }
 
     const data = { ...productData };
@@ -67,7 +115,7 @@ class ProductService {
     const product = await productRepository.deleteById(id);
 
     if (!product) {
-      throw new Error("Producto no encontrado");
+      throw new NotFoundError("Producto no encontrado");
     }
 
     return product;

@@ -1,7 +1,7 @@
 import productService from "../services/products.service.js";
 
 class ProductController {
-  async getAll(req, res) {
+  async getAll(req, res, next) {
     try {
       const products = await productService.getAllProducts(req.query);
 
@@ -10,14 +10,11 @@ class ProductController {
         data: products,
       });
     } catch (error) {
-      res.status(500).json({
-        status: "error",
-        message: error.message,
-      });
+      next(error);
     }
   }
 
-  async getById(req, res) {
+  async getById(req, res, next) {
     try {
       const product = await productService.getProductById(req.params.id);
 
@@ -26,14 +23,11 @@ class ProductController {
         data: product,
       });
     } catch (error) {
-      res.status(404).json({
-        status: "error",
-        message: error.message,
-      });
+      next(error);
     }
   }
 
-  async create(req, res) {
+  async create(req, res, next) {
     try {
       const product = await productService.createProduct(req.body);
 
@@ -42,14 +36,11 @@ class ProductController {
         data: product,
       });
     } catch (error) {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      next(error);
     }
   }
 
-  async update(req, res) {
+  async update(req, res, next) {
     try {
       const product = await productService.updateProduct(
         req.params.id,
@@ -61,14 +52,11 @@ class ProductController {
         data: product,
       });
     } catch (error) {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      next(error);
     }
   }
 
-  async delete(req, res) {
+  async delete(req, res, next) {
     try {
       const product = await productService.deleteProduct(req.params.id);
 
@@ -77,10 +65,7 @@ class ProductController {
         data: product,
       });
     } catch (error) {
-      res.status(404).json({
-        status: "error",
-        message: error.message,
-      });
+      next(error);
     }
   }
 }
