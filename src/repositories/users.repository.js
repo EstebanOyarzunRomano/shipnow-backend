@@ -26,6 +26,13 @@ class UserRepository {
     return user.toObject();
   }
 
+  async createMany(usersData, session = null) {
+    return User.insertMany(usersData, {
+      session,
+      ordered: true,
+    });
+  }
+
   async updateById(id, userData) {
     return User.findByIdAndUpdate(id, userData, {
       new: true,

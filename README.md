@@ -1,82 +1,43 @@
 # ShipNow Backend
 
-API REST desarrollada con **Node.js, Express, MongoDB y Mongoose** como parte del proyecto ShipNow de Backend III.
+API REST desarrollada con **Node.js, Express, MongoDB Atlas y Mongoose** para el proyecto ShipNow de Backend III.
 
-En esta primera etapa, el proyecto se estructuró utilizando una arquitectura por capas para separar las responsabilidades de acceso HTTP, lógica de negocio y persistencia de datos.
+El proyecto utiliza una **arquitectura por capas** y cuenta con gestión de usuarios y productos (Módulo 1), además de un sistema de **mocking y carga de datos de prueba** (Módulo 2) para usuarios, repartidores, pedidos y entregas.
 
-## Tecnologías utilizadas
+## Tecnologías
 
-- Node.js
-- Express
-- MongoDB Atlas
-- Mongoose
-- dotenv
-- Nodemon
+- Node.js y Express
+- MongoDB Atlas y Mongoose
+- @faker-js/faker (datos simulados)
+- dotenv (variables de entorno)
+- Nodemon (desarrollo)
 
 ## Arquitectura
 
-El proyecto utiliza la siguiente arquitectura por capas:
-
 ```text
-Router
-  ↓
-Controller
-  ↓
-Service
-  ↓
-Repository
-  ↓
-Model
-  ↓
-MongoDB
+Router → Controller → Service → Repository → Model → MongoDB
 ```
 
-### Router
+- **Router:** define rutas HTTP y las conecta con sus controladores, sin lógica de negocio.
+- **Controller:** interpreta parámetros, ejecuta servicios y responde por HTTP; delega errores con `next(error)`.
+- **Service:** aplica reglas de negocio, validaciones y generación de datos simulados.
+- **Repository:** encapsula consultas e inserciones en MongoDB mediante Mongoose.
+- **Model:** define esquemas, relaciones y restricciones de los documentos.
+- **Middleware de errores:** centraliza el tratamiento de errores de validación, recursos inexistentes, conflictos y errores inesperados.
 
-Define los endpoints de la API y conecta cada ruta con el método correspondiente del Controller. No contiene lógica de negocio ni acceso directo a la base de datos.
-
-### Controller
-
-Es la puerta de entrada HTTP de la aplicación. Recibe las peticiones, obtiene parámetros, query params y body, invoca al Service y construye las respuestas exitosas. Los errores se delegan al middleware global mediante `next(error)`.
-
-### Service
-
-Contiene las reglas de negocio de la aplicación, entre ellas:
-
-- Determinar automáticamente el estado de un producto según su stock.
-- Impedir precios negativos y stock negativo o no entero.
-- Filtrar productos disponibles y con stock positivo cuando se solicita `onlyAvailable=true`.
-- Validar los roles permitidos y asignar el rol `user` por defecto.
-- Normalizar el email de los usuarios y evitar duplicados.
-- Lanzar errores de negocio tipados cuando corresponda.
-
-### Repository
-
-Encapsula el acceso a MongoDB mediante Mongoose. Es la capa encargada de buscar, crear, actualizar y eliminar documentos, además de aplicar filtros y proyecciones de consulta.
-
-La separación entre Service y Repository permite mantener la lógica de negocio independiente de la tecnología utilizada para persistir los datos: **el Service decide qué debe hacer la aplicación y el Repository determina cómo consultar o modificar la información almacenada**.
-
-### Manejo centralizado de errores
-
-Los Controllers propagan los errores al middleware `src/middlewares/error.middleware.js`, que determina el código HTTP según el tipo de error. La aplicación contempla errores personalizados de validación, recursos inexistentes y conflictos, además de errores de Mongoose y errores inesperados.
-
-| Código | Significado | Ejemplo |
-|---|---|---|
-| `400 Bad Request` | Datos o identificador inválidos | Precio negativo o ID mal formado |
-| `404 Not Found` | Recurso inexistente | Producto no encontrado |
-| `409 Conflict` | Conflicto con un registro existente | Email duplicado |
-| `500 Internal Server Error` | Error inesperado | Fallo interno no controlado |
+Los endpoints GET de mocking generan datos **en memoria** y no acceden a la base para insertarlos. El endpoint de seed usa repositorios y una transacción para persistir datos relacionados.
 
 ## Estructura del proyecto
 
 ```text
 src/
 ├── config/
-│   ├── env.config.js
-    └── env.config.js
+│   ├── db.js
+│   └── env.config.js
 ├── constants/
 │   └── index.js
 ├── controllers/
+│   ├── mocks.controller.js
 │   ├── products.controller.js
 │   └── users.controller.js
 ├── errors/
@@ -84,58 +45,45 @@ src/
 ├── middlewares/
 │   └── error.middleware.js
 ├── models/
+│   ├── delivery.model.js
+│   ├── order.model.js
 │   ├── product.model.js
 │   └── user.model.js
 ├── repositories/
+│   ├── deliveries.repository.js
+│   ├── orders.repository.js
 │   ├── products.repository.js
 │   └── users.repository.js
 ├── routes/
+│   ├── mocks.router.js
 │   ├── products.router.js
 │   └── users.router.js
 ├── services/
+│   ├── mocks.service.js
 │   ├── products.service.js
 │   └── users.service.js
 ├── app.js
 └── server.js
 ```
 
-El inicio de la aplicación se encuentra centralizado en server.js, que establece la conexión con MongoDB mediante config/db.js y posteriormente inicia el servidor HTTP. El archivo app.js se encarga exclusivamente de configurar Express, sus rutas y middlewares. Esta separación facilita el mantenimiento y las pruebas de la aplicación.
+`server.js` conecta con MongoDB e inicia el servidor. `app.js` configura Express, los routers y el middleware global de errores.
 
-## Configuración de entorno
-
-La aplicación utiliza variables de entorno mediante `dotenv`.
-
-| Variable | Descripción |
-|---|---|
-| `PORT` | Puerto HTTP del servidor |
-| `MONGODB_URI` | Cadena de conexión a MongoDB |
-| `NODE_ENV` | Entorno de ejecución, por ejemplo `development` |
-
-El archivo `.env` no se incluye en el repositorio por motivos de seguridad. Se incluye `.env.example` como referencia.
-
-La aplicación valida las variables críticas al iniciar. Si falta alguna o `PORT` es inválido, el servidor no inicia y muestra un error descriptivo.
-
-## Instalación
+## Instalación y configuración
 
 1. Clonar el repositorio:
 
    ```bash
    git clone https://github.com/EstebanOyarzunRomano/shipnow-backend.git
-   ```
-
-2. Ingresar al proyecto:
-
-   ```bash
    cd shipnow-backend
    ```
 
-3. Instalar las dependencias:
+2. Instalar las dependencias:
 
    ```bash
    npm install
    ```
 
-4. Crear un archivo `.env` tomando como referencia `.env.example`:
+3. Crear `.env` a partir de `.env.example`:
 
    ```env
    PORT=8080
@@ -143,51 +91,35 @@ La aplicación valida las variables críticas al iniciar. Si falta alguna o `POR
    NODE_ENV=development
    ```
 
-   Reemplazar `TU_URI_DE_MONGODB` por una cadena de conexión válida. No subir credenciales al repositorio.
+   Reemplazar `TU_URI_DE_MONGODB` por una cadena de conexión válida a una **base de desarrollo/pruebas**. No subir `.env` ni credenciales a GitHub.
 
-## Ejecución
+4. Iniciar el servidor:
 
-En modo desarrollo:
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm run dev
-```
+   O ejecutar en modo normal:
 
-En modo normal:
-
-```bash
-npm start
-```
+   ```bash
+   npm start
+   ```
 
 Con `PORT=8080`, la API estará disponible en `http://localhost:8080`.
 
-## Endpoints de Products
+## Módulo 1 — Usuarios y productos
 
-| Método | Endpoint | Descripción | Filtros / parámetros |
-|---|---|---|---|
-| `GET` | `/api/products` | Listar productos | `status`, `onlyAvailable` (opcionales) |
-| `GET` | `/api/products/:id` | Obtener un producto por ID | `id`: identificador del producto |
-| `POST` | `/api/products` | Crear un producto | Body JSON |
-| `PUT` | `/api/products/:id` | Actualizar un producto | `id` y Body JSON |
-| `DELETE` | `/api/products/:id` | Eliminar un producto | `id`: identificador del producto |
+### Endpoints de productos
 
-### Filtros de productos
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/products` | Listar productos; filtros opcionales `status` y `onlyAvailable` |
+| GET | `/api/products/:id` | Obtener producto por ID |
+| POST | `/api/products` | Crear producto con body JSON |
+| PUT | `/api/products/:id` | Actualizar producto |
+| DELETE | `/api/products/:id` | Eliminar producto |
 
-- `status=available`: devuelve productos cuyo estado es `available`.
-- `status=out_of_stock`: devuelve productos cuyo estado es `out_of_stock`.
-- `onlyAvailable=true`: devuelve únicamente productos con estado `available` **y stock mayor a cero**.
-- Si se envían `onlyAvailable=true` y `status` simultáneamente, `onlyAvailable=true` tiene prioridad sobre el filtro `status`.
-- Si no se envían filtros, se devuelven todos los productos.
-
-Ejemplos:
-
-```http
-GET /api/products
-GET /api/products?status=out_of_stock
-GET /api/products?onlyAvailable=true
-```
-
-### Ejemplo: crear producto
+Ejemplo de creación:
 
 ```http
 POST /api/products
@@ -203,32 +135,19 @@ Content-Type: application/json
 }
 ```
 
-El estado del producto se calcula automáticamente a partir de `stock`: `available` si es mayor que cero y `out_of_stock` si es cero.
+El estado del producto se determina automáticamente a partir de su stock: `available` si es mayor que cero y `out_of_stock` si es cero. `onlyAvailable=true` devuelve productos disponibles con stock positivo y tiene prioridad sobre el filtro `status`.
 
-## Endpoints de Users
+### Endpoints de usuarios
 
-| Método | Endpoint | Descripción | Filtros / parámetros |
-|---|---|---|---|
-| `GET` | `/api/users` | Listar usuarios | `role` (opcional) |
-| `GET` | `/api/users/:id` | Obtener un usuario por ID | `id`: identificador del usuario |
-| `POST` | `/api/users` | Crear un usuario | Body JSON |
-| `PUT` | `/api/users/:id` | Actualizar un usuario | `id` y Body JSON |
-| `DELETE` | `/api/users/:id` | Eliminar un usuario | `id`: identificador del usuario |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/users` | Listar usuarios; filtro opcional `role` |
+| GET | `/api/users/:id` | Obtener usuario por ID |
+| POST | `/api/users` | Crear usuario con body JSON |
+| PUT | `/api/users/:id` | Actualizar usuario |
+| DELETE | `/api/users/:id` | Eliminar usuario |
 
-### Filtro de usuarios
-
-- `role=user`: devuelve usuarios con rol `user`.
-- `role=admin`: devuelve usuarios con rol `admin`.
-- Si no se envía `role`, se devuelven todos los usuarios.
-
-Ejemplos:
-
-```http
-GET /api/users
-GET /api/users?role=admin
-```
-
-### Ejemplo: crear usuario
+Ejemplo de creación:
 
 ```http
 POST /api/users
@@ -237,17 +156,148 @@ Content-Type: application/json
 
 ```json
 {
-  "firstName": "Esteban",
-  "lastName": "Oyarzun",
-  "email": "esteban@shipnow.com"
+  "firstName": "Ana",
+  "lastName": "Pérez",
+  "email": "ana@example.com"
 }
 ```
 
-Si no se indica `role`, se asigna `user` por defecto. Los emails se normalizan a minúsculas y no pueden repetirse.
+Si no se indica `role`, se asigna `user`. Los emails se normalizan a minúsculas y deben ser únicos. Los roles válidos son `admin`, `user` y `driver`.
 
-## Formato de respuestas
+## Módulo 2 — Mocking y carga de datos de prueba
 
-Las operaciones exitosas devuelven un objeto con `status` y `data`:
+El router `/api/mocks` permite generar información ficticia con Faker, sin cargarla manualmente. La generación de datos y la persistencia se mantienen separadas por capas.
+
+### Endpoints de mocking
+
+| Método | Endpoint | Resultado | ¿Guarda en MongoDB? |
+|---|---|---|---|
+| GET | `/api/mocks/users?qty=3` | Usuarios con rol `user` | No |
+| GET | `/api/mocks/drivers?qty=3` | Repartidores con rol `driver` | No |
+| GET | `/api/mocks/orders?qty=3` | Pedidos con estados y prioridades válidos | No |
+| GET | `/api/mocks/deliveries?qty=3` | Entregas con estados y fechas | No |
+| GET | `/api/mocks/dataset?qty=3` | Conjunto de usuarios, repartidores, productos, pedidos y entregas relacionados | No |
+| POST | `/api/mocks/seed?qty=3` | Inserta usuarios, repartidores, pedidos y entregas relacionados | **Sí** |
+
+El parámetro `qty` es opcional (valor predeterminado: `10`) y acepta enteros entre **1 y 100**. Un valor fuera de ese rango produce un error de validación.
+
+### Ejemplo: generar usuarios sin persistencia
+
+```http
+GET http://localhost:8080/api/mocks/users?qty=2
+```
+
+Ejemplo ilustrativo de respuesta `200 OK` (los valores cambian en cada ejecución):
+
+```json
+[
+  {
+    "firstName": "Ana",
+    "lastName": "Pérez",
+    "email": "ana.perez@example.com",
+    "role": "user"
+  },
+  {
+    "firstName": "Luis",
+    "lastName": "Gómez",
+    "email": "luis.gomez@example.com",
+    "role": "user"
+  }
+]
+```
+
+### Ejemplo: dataset relacionado sin persistencia
+
+```http
+GET http://localhost:8080/api/mocks/dataset?qty=3
+```
+
+La respuesta contiene `message`, `quantity` y `data`, con los arreglos `users`, `drivers`, `products`, `orders` y `deliveries`.
+
+En un mismo dataset:
+
+- `orders[].user` corresponde al `_id` de un usuario de `users`.
+- `orders[].products[].product` corresponde al `_id` de un producto de `products`.
+- `deliveries[].order` corresponde al `_id` de un pedido de `orders`.
+- `deliveries[].driver` corresponde al `_id` de un repartidor de `drivers`, con rol `driver`.
+- El total de cada pedido se calcula según precio y cantidad del producto simulado.
+
+**Nota:** los endpoints individuales `/orders` y `/deliveries` generan identificadores ficticios con formato MongoDB, pero no crean los documentos referenciados ni garantizan referencias compartidas entre peticiones independientes. Para verificar relaciones completas sin persistencia, utilizar `/dataset`.
+
+### Carga de datos de prueba (seed)
+
+**Advertencia:** este endpoint escribe documentos reales en MongoDB. Utilizar únicamente una base de desarrollo/pruebas y evitar ejecutar la petición repetidamente sin necesidad.
+
+**Requisito previo:** debe existir al menos un producto en la colección `products`. El seed reutiliza productos existentes, sin crear productos nuevos ni modificar el stock. Se trata de datos de prueba, no de una operación comercial de inventario.
+
+En Thunder Client o Postman:
+
+```http
+POST http://localhost:8080/api/mocks/seed?qty=2
+```
+
+No requiere body JSON. Respuesta esperada `201 Created`:
+
+```json
+{
+  "message": "Datos de prueba insertados correctamente",
+  "inserted": {
+    "users": 2,
+    "drivers": 2,
+    "orders": 2,
+    "deliveries": 2
+  },
+  "totalInserted": 8
+}
+```
+
+Con `qty=2` se insertan cuatro documentos en `users` (dos usuarios y dos repartidores), dos en `orders` y dos en `deliveries`: **ocho documentos en total**.
+
+El servicio:
+
+1. Valida `qty` y comprueba que existan productos.
+2. Genera usuarios y repartidores con emails únicos entre ejecuciones.
+3. Inserta usuarios y obtiene sus `_id` reales.
+4. Genera pedidos asociados a usuarios y productos existentes, calculando el total a partir del precio del producto.
+5. Genera entregas asociadas a pedidos insertados y a usuarios con rol `driver`.
+6. Ejecuta las inserciones mediante una transacción de MongoDB y devuelve el resumen al confirmarse.
+
+La transacción requiere una implementación de MongoDB compatible, como un clúster de Atlas respaldado por un replica set. Si falla una operación dentro de la transacción, se revierten las inserciones de esa transacción.
+
+### Verificación del seed en MongoDB Atlas
+
+Abrir **Browse Collections** en Atlas y revisar:
+
+- `users`: nuevos usuarios con rol `user` y `driver`.
+- `orders`: referencias `user` y `products.product`, además de `status`, `priority`, `total` y `deliveryAddress`.
+- `deliveries`: referencias `order` y `driver`, estado y fechas.
+
+Para comprobar integridad referencial, buscar el `_id` de un repartidor en `users` y verificar que su rol sea `driver`; buscar también el `_id` de un pedido referenciado en `deliveries`.
+
+### Modelos involucrados
+
+- **User:** nombre, apellido, email único y rol. Los repartidores son usuarios con rol `driver`.
+- **Product:** nombre, descripción, precio, stock y estado.
+- **Order:** referencia a usuario, productos con cantidades, estado, prioridad, total y dirección.
+- **Delivery:** referencia única a pedido, referencia opcional a repartidor, estado y fechas de asignación/finalización.
+
+## Constantes del dominio
+
+Definidas en `src/constants/index.js` mediante `Object.freeze()`:
+
+| Constante | Valores |
+|---|---|
+| `USER_ROLES` | `admin`, `user`, `driver` |
+| `PRODUCT_STATUS` | `available`, `out_of_stock` |
+| `ORDER_STATUS` | `pending`, `confirmed`, `in_transit`, `delivered`, `cancelled` |
+| `ORDER_PRIORITY` | `low`, `medium`, `high` |
+| `DELIVERY_STATUS` | `pending`, `assigned`, `in_progress`, `completed`, `failed` |
+
+Los modelos y el servicio de mocking reutilizan estas constantes para evitar valores de dominio escritos directamente en distintos archivos.
+
+## Formato de respuestas y errores
+
+Los endpoints originales de usuarios y productos utilizan respuestas exitosas como:
 
 ```json
 {
@@ -256,26 +306,40 @@ Las operaciones exitosas devuelven un objeto con `status` y `data`:
 }
 ```
 
-El contenido de `data` depende del endpoint: puede ser un objeto o una lista.
+Los endpoints GET individuales de mocking devuelven **arreglos JSON directamente**; `/dataset` devuelve un objeto con `message`, `quantity` y `data`, mientras que `/seed` devuelve un resumen de inserciones.
 
-Los errores devuelven un objeto con `status` y `message`:
+Los errores se delegan al middleware global. Entre los códigos contemplados se encuentran:
 
-```json
-{
-  "status": "error",
-  "message": "Producto no encontrado"
-}
-```
+| Código | Significado | Ejemplo |
+|---|---|---|
+| 400 | Bad Request | `qty` inválido o precio negativo |
+| 404 | Not Found | Recurso inexistente |
+| 409 | Conflict | Email duplicado |
+| 500 | Internal Server Error | Error inesperado |
 
-## Constantes del dominio
+## Pruebas sugeridas
 
-Los valores fijos del dominio se encuentran centralizados en `src/constants/index.js`:
+Utilizar Thunder Client o Postman:
 
-- Roles de usuario: `USER_ROLES.ADMIN` (`admin`) y `USER_ROLES.USER` (`user`).
-- Estados de producto: `PRODUCT_STATUS.AVAILABLE` (`available`) y `PRODUCT_STATUS.OUT_OF_STOCK` (`out_of_stock`).
+1. Ejecutar `GET /api/mocks/users?qty=3` y comprobar tres usuarios con rol `user`.
+2. Ejecutar `GET /api/mocks/drivers?qty=3` y comprobar tres usuarios con rol `driver`.
+3. Ejecutar `GET /api/mocks/orders?qty=3` y verificar estados y prioridades válidos.
+4. Ejecutar `GET /api/mocks/deliveries?qty=3` y verificar estados y fechas.
+5. Ejecutar `GET /api/mocks/dataset?qty=3` y comprobar coincidencias de identificadores entre entidades.
+6. Probar `GET /api/mocks/users?qty=0` y verificar que se rechace la cantidad inválida.
+7. En una base de **pruebas**, con al menos un producto creado, ejecutar una sola vez `POST /api/mocks/seed?qty=2`.
+8. Revisar las colecciones en Atlas y verificar las referencias entre documentos.
 
-Estas constantes utilizan `Object.freeze()` para evitar modificaciones durante la ejecución y reducir el uso de *strings mágicos*.
+## Seguridad y control de versiones
+
+No subir al repositorio:
+
+- `node_modules/`
+- `.env`
+- Credenciales, secretos o cadenas de conexión privadas
+
+Mantener `.env.example` con valores de referencia sin secretos. El endpoint de seed está destinado al entorno de desarrollo y **no debe exponerse públicamente en producción sin controles de acceso y restricciones de entorno**.
 
 ## Autor
 
-Esteban Oyarzun
+Esteban Damian Oyarzun Romano
