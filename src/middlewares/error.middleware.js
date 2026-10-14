@@ -1,49 +1,74 @@
 
 import { AppError } from "../errors/app.error.js";
+import { ERROR_CODES } from "../constants/error-codes.js";
 
 const errorMiddleware = (err, req, res, next) => {
-  // 1. Errores personalizados de nuestra aplicación
+  // 1. Errores personalizados de la aplicación
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       status: "error",
+      code: err.code,
       message: err.message,
     });
   }
 
-  // 2. Identificador inválido de MongoDB
-  if (err.name === "CastError") {
-    return res.status(400).json({
+  // 2. JSON malformado
+  if (err.type === "entity.parse.failed") {
+    const error = ERROR_CODES.INVALID_JSON;
+
+    return res.status(error.statusCode).json({
       status: "error",
-      message: "Identificador o valor inválido",
+      code: error.code,
+      message: error.message,
     });
   }
 
-  // 3. Error de validación del esquema de Mongoose
+  // 3. Identificador inválido de MongoDB
+  if (err.name === "CastError") {
+    const error = ERROR_CODES.INVALID_IDENTIFIER;
+
+    return res.status(error.statusCode).json({
+      status: "error",
+      code: error.code,
+      message: error.message,
+    });
+  }
+
+  // 4. Error de validación de Mongoose
   if (err.name === "ValidationError") {
+    const error = ERROR_CODES.INVALID_DATA;
+
     const messages = Object.values(err.errors || {}).map(
-      (error) => error.message
+      (item) => item.message
     );
 
-    return res.status(400).json({
+    return res.status(error.statusCode).json({
       status: "error",
-      message: messages.join(", ") || "Datos inválidos",
+      code: error.code,
+      message: messages.join(", ") || error.message,
     });
   }
 
-  // 4. Error de clave única duplicada en MongoDB
+  // 5. Clave duplicada en MongoDB
   if (err.code === 11000) {
-    return res.status(409).json({
+    const error = ERROR_CODES.DUPLICATE_RESOURCE;
+
+    return res.status(error.statusCode).json({
       status: "error",
-      message: "Ya existe un registro con esos datos únicos",
+      code: error.code,
+      message: error.message,
     });
   }
 
-  // 5. Errores inesperados
+  // 6. Errores inesperados
   console.error("Error inesperado:", err);
 
-  return res.status(500).json({
+  const error = ERROR_CODES.INTERNAL_ERROR;
+
+  return res.status(error.statusCode).json({
     status: "error",
-    message: "Error interno del servidor",
+    code: error.code,
+    message: error.message,
   });
 };
 

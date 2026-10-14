@@ -1,5 +1,9 @@
+
 import productRepository from "../repositories/products.repository.js";
+
 import { PRODUCT_STATUS } from "../constants/index.js";
+import { ERROR_CODES } from "../constants/error-codes.js";
+
 import {
   ValidationError,
   NotFoundError,
@@ -26,7 +30,9 @@ class ProductService {
     const product = await productRepository.getById(id);
 
     if (!product) {
-      throw new NotFoundError("Producto no encontrado");
+      const error = ERROR_CODES.PRODUCT_NOT_FOUND;
+
+      throw new NotFoundError(error.message, error.code);
     }
 
     return product;
@@ -38,9 +44,9 @@ class ProductService {
       !Number.isFinite(productData.price) ||
       productData.price < 0
     ) {
-      throw new ValidationError(
-        "El precio debe ser un número mayor o igual a cero"
-      );
+      const error = ERROR_CODES.INVALID_PRODUCT_PRICE;
+
+      throw new ValidationError(error.message, error.code);
     }
 
     if (
@@ -49,9 +55,9 @@ class ProductService {
       !Number.isInteger(productData.stock) ||
       productData.stock < 0
     ) {
-      throw new ValidationError(
-        "El stock debe ser un número entero mayor o igual a cero"
-      );
+      const error = ERROR_CODES.INVALID_PRODUCT_STOCK;
+
+      throw new ValidationError(error.message, error.code);
     }
 
     const data = {
@@ -69,7 +75,9 @@ class ProductService {
     const existingProduct = await productRepository.getById(id);
 
     if (!existingProduct) {
-      throw new NotFoundError("Producto no encontrado");
+      const error = ERROR_CODES.PRODUCT_NOT_FOUND;
+
+      throw new NotFoundError(error.message, error.code);
     }
 
     if (
@@ -80,9 +88,9 @@ class ProductService {
         productData.price < 0
       )
     ) {
-      throw new ValidationError(
-        "El precio debe ser un número mayor o igual a cero"
-      );
+      const error = ERROR_CODES.INVALID_PRODUCT_PRICE;
+
+      throw new ValidationError(error.message, error.code);
     }
 
     if (
@@ -94,9 +102,9 @@ class ProductService {
         productData.stock < 0
       )
     ) {
-      throw new ValidationError(
-        "El stock debe ser un número entero mayor o igual a cero"
-      );
+      const error = ERROR_CODES.INVALID_PRODUCT_STOCK;
+
+      throw new ValidationError(error.message, error.code);
     }
 
     const data = { ...productData };
@@ -115,7 +123,9 @@ class ProductService {
     const product = await productRepository.deleteById(id);
 
     if (!product) {
-      throw new NotFoundError("Producto no encontrado");
+      const error = ERROR_CODES.PRODUCT_NOT_FOUND;
+
+      throw new NotFoundError(error.message, error.code);
     }
 
     return product;

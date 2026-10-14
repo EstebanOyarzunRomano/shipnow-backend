@@ -23,9 +23,10 @@ Router → Controller → Service → Repository → Model → MongoDB
 - **Service:** aplica reglas de negocio, validaciones y generación de datos simulados.
 - **Repository:** encapsula consultas e inserciones en MongoDB mediante Mongoose.
 - **Model:** define esquemas, relaciones y restricciones de los documentos.
-- **Middleware de errores:** centraliza el tratamiento de errores de validación, recursos inexistentes, conflictos y errores inesperados.
+- **Middlewares:** gestionan rutas inexistentes y errores de forma centralizada, con respuestas JSON.
+- **Diccionario de errores:** centraliza códigos y mensajes reutilizados en las capas de la aplicación.
 
-Los endpoints GET de mocking generan datos **en memoria** y no acceden a la base para insertarlos. El endpoint de seed usa repositorios y una transacción para persistir datos relacionados.
+Los endpoints GET de mocking generan datos **en memoria** y no los insertan en la base. El endpoint de seed usa repositorios y una transacción para persistir datos relacionados.
 
 ## Estructura del proyecto
 
@@ -35,6 +36,7 @@ src/
 │   ├── db.js
 │   └── env.config.js
 ├── constants/
+│   ├── error-codes.js
 │   └── index.js
 ├── controllers/
 │   ├── mocks.controller.js
@@ -43,7 +45,8 @@ src/
 ├── errors/
 │   └── app.error.js
 ├── middlewares/
-│   └── error.middleware.js
+│   ├── error.middleware.js
+│   └── notFound.middleware.js
 ├── models/
 │   ├── delivery.model.js
 │   ├── order.model.js
@@ -66,7 +69,7 @@ src/
 └── server.js
 ```
 
-`server.js` conecta con MongoDB e inicia el servidor. `app.js` configura Express, los routers y el middleware global de errores.
+`server.js` conecta con MongoDB e inicia el servidor. `app.js` configura Express, los routers, el middleware de rutas inexistentes y el manejador global de errores, en ese orden.
 
 ## Instalación y configuración
 
@@ -176,10 +179,12 @@ El router `/api/mocks` permite generar información ficticia con Faker, sin carg
 | GET | `/api/mocks/drivers?qty=3` | Repartidores con rol `driver` | No |
 | GET | `/api/mocks/orders?qty=3` | Pedidos con estados y prioridades válidos | No |
 | GET | `/api/mocks/deliveries?qty=3` | Entregas con estados y fechas | No |
-| GET | `/api/mocks/dataset?qty=3` | Conjunto de usuarios, repartidores, productos, pedidos y entregas relacionados | No |
+| GET | `/api/mocks/dataset?qty=3` | Conjunto relacionado de usuarios, repartidores, productos, pedidos y entregas | No |
 | POST | `/api/mocks/seed?qty=3` | Inserta usuarios, repartidores, pedidos y entregas relacionados | **Sí** |
 
-El parámetro `qty` es opcional (valor predeterminado: `10`) y acepta enteros entre **1 y 100**. Un valor fuera de ese rango produce un error de validación.
+El parámetro `qty` es opcional (valor predeterminado: `10`) y acepta enteros entre **1 y 100**. Un valor fuera de ese rango produce HTTP `400` con código `INVALID_MOCK_QUANTITY`.
+
+La cantidad indicada en `qty` se aplica a cada tipo de entidad generado; en el seed, `qty=2` crea dos usuarios comunes, dos repartidores, dos pedidos y dos entregas.
 
 ### Ejemplo: generar usuarios sin persistencia
 
@@ -190,20 +195,23 @@ GET http://localhost:8080/api/mocks/users?qty=2
 Ejemplo ilustrativo de respuesta `200 OK` (los valores cambian en cada ejecución):
 
 ```json
-[
-  {
-    "firstName": "Ana",
-    "lastName": "Pérez",
-    "email": "ana.perez@example.com",
-    "role": "user"
-  },
-  {
-    "firstName": "Luis",
-    "lastName": "Gómez",
-    "email": "luis.gomez@example.com",
-    "role": "user"
-  }
-]
+{
+  "status": "success",
+  "payload": [
+    {
+      "firstName": "Ana",
+      "lastName": "Pérez",
+      "email": "ana.perez@example.com",
+      "role": "user"
+    },
+    {
+      "firstName": "Luis",
+      "lastName": "Gómez",
+      "email": "luis.gomez@example.com",
+      "role": "user"
+    }
+  ]
+}
 ```
 
 ### Ejemplo: dataset relacionado sin persistencia
@@ -212,7 +220,26 @@ Ejemplo ilustrativo de respuesta `200 OK` (los valores cambian en cada ejecució
 GET http://localhost:8080/api/mocks/dataset?qty=3
 ```
 
-La respuesta contiene `message`, `quantity` y `data`, con los arreglos `users`, `drivers`, `products`, `orders` y `deliveries`.
+La respuesta tiene la estructura:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "message": "Datos simulados generados correctamente",
+    "quantity": 3,
+    "data": {
+      "users": [],
+      "drivers": [],
+      "products": [],
+      "orders": [],
+      "deliveries": []
+    }
+  }
+}
+```
+
+**Nota:** los arrays vacíos del ejemplo anterior representan la estructura de la respuesta; con `qty=3` contendrán tres elementos por colección.
 
 En un mismo dataset:
 
@@ -228,7 +255,7 @@ En un mismo dataset:
 
 **Advertencia:** este endpoint escribe documentos reales en MongoDB. Utilizar únicamente una base de desarrollo/pruebas y evitar ejecutar la petición repetidamente sin necesidad.
 
-**Requisito previo:** debe existir al menos un producto en la colección `products`. El seed reutiliza productos existentes, sin crear productos nuevos ni modificar el stock. Se trata de datos de prueba, no de una operación comercial de inventario.
+**Requisito previo:** debe existir al menos un producto en la colección `products`. El seed reutiliza productos existentes a través de `products.repository.js`, sin crear productos nuevos ni modificar el stock. Se trata de datos de prueba, no de una operación comercial de inventario.
 
 En Thunder Client o Postman:
 
@@ -240,14 +267,17 @@ No requiere body JSON. Respuesta esperada `201 Created`:
 
 ```json
 {
-  "message": "Datos de prueba insertados correctamente",
-  "inserted": {
-    "users": 2,
-    "drivers": 2,
-    "orders": 2,
-    "deliveries": 2
-  },
-  "totalInserted": 8
+  "status": "success",
+  "payload": {
+    "message": "Datos de prueba insertados correctamente",
+    "inserted": {
+      "users": 2,
+      "drivers": 2,
+      "orders": 2,
+      "deliveries": 2
+    },
+    "totalInserted": 8
+  }
 }
 ```
 
@@ -255,12 +285,12 @@ Con `qty=2` se insertan cuatro documentos en `users` (dos usuarios y dos reparti
 
 El servicio:
 
-1. Valida `qty` y comprueba que existan productos.
+1. Valida `qty` y comprueba que existan productos mediante el repositorio.
 2. Genera usuarios y repartidores con emails únicos entre ejecuciones.
 3. Inserta usuarios y obtiene sus `_id` reales.
 4. Genera pedidos asociados a usuarios y productos existentes, calculando el total a partir del precio del producto.
 5. Genera entregas asociadas a pedidos insertados y a usuarios con rol `driver`.
-6. Ejecuta las inserciones mediante una transacción de MongoDB y devuelve el resumen al confirmarse.
+6. Ejecuta las inserciones mediante `session.withTransaction()` y devuelve el resumen al confirmarse.
 
 La transacción requiere una implementación de MongoDB compatible, como un clúster de Atlas respaldado por un replica set. Si falla una operación dentro de la transacción, se revierten las inserciones de esa transacción.
 
@@ -297,38 +327,105 @@ Los modelos y el servicio de mocking reutilizan estas constantes para evitar val
 
 ## Formato de respuestas y errores
 
-Los endpoints originales de usuarios y productos utilizan respuestas exitosas como:
+### Respuestas exitosas
+
+Los endpoints de usuarios, productos y mocking devuelven respuestas exitosas con la estructura:
 
 ```json
 {
   "status": "success",
-  "data": {}
+  "payload": {}
 }
 ```
 
-Los endpoints GET individuales de mocking devuelven **arreglos JSON directamente**; `/dataset` devuelve un objeto con `message`, `quantity` y `data`, mientras que `/seed` devuelve un resumen de inserciones.
+`payload` puede contener un objeto, un array o un resumen de inserción, según el endpoint. Los GET exitosos responden `200 OK`; las operaciones de creación y el seed responden `201 Created`.
 
-Los errores se delegan al middleware global. Entre los códigos contemplados se encuentran:
+### Respuestas de error
 
-| Código | Significado | Ejemplo |
+Los errores operacionales utilizan un formato consistente:
+
+```json
+{
+  "status": "error",
+  "code": "USER_NOT_FOUND",
+  "message": "Usuario no encontrado"
+}
+```
+
+Los códigos y mensajes de errores propios de la aplicación se centralizan en `src/constants/error-codes.js`. Las clases de error tipadas se definen en `src/errors/app.error.js` y el middleware global traduce los errores a respuestas HTTP JSON.
+
+| HTTP | Situación | Ejemplo de código |
 |---|---|---|
-| 400 | Bad Request | `qty` inválido o precio negativo |
-| 404 | Not Found | Recurso inexistente |
-| 409 | Conflict | Email duplicado |
-| 500 | Internal Server Error | Error inesperado |
+| 400 Bad Request | Cantidad de mocks inválida | `INVALID_MOCK_QUANTITY` |
+| 400 Bad Request | JSON malformado | `INVALID_JSON` |
+| 400 Bad Request | Precio o stock inválido | `INVALID_PRODUCT_PRICE`, `INVALID_PRODUCT_STOCK` |
+| 400 Bad Request | Email o rol inválido | `USER_EMAIL_REQUIRED`, `INVALID_USER_ROLE` |
+| 404 Not Found | Ruta inexistente | `ROUTE_NOT_FOUND` |
+| 404 Not Found | Usuario o producto inexistente | `USER_NOT_FOUND`, `PRODUCT_NOT_FOUND` |
+| 409 Conflict | Email duplicado | `USER_EMAIL_ALREADY_EXISTS` |
+| 500 Internal Server Error | Error inesperado del servidor | Código según el middleware global |
+
+Los errores de Mongoose, incluidos `CastError`, errores de validación y claves únicas duplicadas, también se procesan en el middleware global.
+
+### Ejemplos de errores
+
+**Ruta inexistente:**
+
+```http
+GET http://localhost:8080/api/noexiste
+```
+
+Respuesta `404 Not Found`:
+
+```json
+{
+  "status": "error",
+  "code": "ROUTE_NOT_FOUND",
+  "message": "La ruta solicitada no existe"
+}
+```
+
+**Cantidad inválida:**
+
+```http
+GET http://localhost:8080/api/mocks/users?qty=abc
+```
+
+Respuesta `400 Bad Request`:
+
+```json
+{
+  "status": "error",
+  "code": "INVALID_MOCK_QUANTITY",
+  "message": "La cantidad debe ser un número entero entre 1 y 100"
+}
+```
+
+**JSON malformado:** enviar un body como `{roto` con `Content-Type: application/json`. Respuesta `400 Bad Request`:
+
+```json
+{
+  "status": "error",
+  "code": "INVALID_JSON",
+  "message": "El cuerpo de la petición contiene un JSON inválido"
+}
+```
 
 ## Pruebas sugeridas
 
 Utilizar Thunder Client o Postman:
 
-1. Ejecutar `GET /api/mocks/users?qty=3` y comprobar tres usuarios con rol `user`.
-2. Ejecutar `GET /api/mocks/drivers?qty=3` y comprobar tres usuarios con rol `driver`.
+1. Ejecutar `GET /api/mocks/users?qty=3` y comprobar `200`, `status: "success"` y tres usuarios con rol `user` dentro de `payload`.
+2. Ejecutar `GET /api/mocks/drivers?qty=3` y comprobar tres repartidores con rol `driver`.
 3. Ejecutar `GET /api/mocks/orders?qty=3` y verificar estados y prioridades válidos.
 4. Ejecutar `GET /api/mocks/deliveries?qty=3` y verificar estados y fechas.
 5. Ejecutar `GET /api/mocks/dataset?qty=3` y comprobar coincidencias de identificadores entre entidades.
-6. Probar `GET /api/mocks/users?qty=0` y verificar que se rechace la cantidad inválida.
-7. En una base de **pruebas**, con al menos un producto creado, ejecutar una sola vez `POST /api/mocks/seed?qty=2`.
-8. Revisar las colecciones en Atlas y verificar las referencias entre documentos.
+6. Probar `GET /api/mocks/users?qty=abc`, `qty=0`, `qty=-1`, `qty=1.5`, `qty=101` y `qty=`; todos deben responder `400` con `INVALID_MOCK_QUANTITY`.
+7. Probar `GET /api/noexiste`; debe devolver `404` y `ROUTE_NOT_FOUND` en JSON.
+8. Enviar un JSON malformado con encabezado `Content-Type: application/json`; debe devolver `400` y `INVALID_JSON`.
+9. Probar `GET /api/products` y `GET /api/users`; ambos deben devolver `200` con `status` y `payload`.
+10. En una base de **pruebas**, con al menos un producto creado, ejecutar `POST /api/mocks/seed?qty=2`; verificar `201`, `status: "success"` y el resumen en `payload`.
+11. Revisar las colecciones en Atlas y verificar las referencias entre documentos insertados.
 
 ## Seguridad y control de versiones
 

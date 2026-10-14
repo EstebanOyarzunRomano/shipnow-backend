@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 import { faker } from "@faker-js/faker";
 
@@ -8,12 +9,13 @@ import {
   DELIVERY_STATUS,
 } from "../constants/index.js";
 
+import { ERROR_CODES } from "../constants/error-codes.js";
+import { ValidationError } from "../errors/app.error.js";
+
 import userRepository from "../repositories/users.repository.js";
 import orderRepository from "../repositories/orders.repository.js";
 import deliveryRepository from "../repositories/deliveries.repository.js";
-
-import Product from "../models/product.model.js";
-import { ValidationError } from "../errors/app.error.js";
+import productRepository from "../repositories/products.repository.js";
 
 class MocksService {
   // Generar un usuario ficticio
@@ -197,22 +199,29 @@ class MocksService {
   async seed(qty = 10) {
     const quantity = Number(qty);
 
+    // Validar cantidad mediante el diccionario
     if (
       !Number.isInteger(quantity) ||
       quantity < 1 ||
       quantity > 100
     ) {
+      const error = ERROR_CODES.INVALID_MOCK_QUANTITY;
+
       throw new ValidationError(
-        "La cantidad debe ser un entero entre 1 y 100"
+        error.message,
+        error.code
       );
     }
 
-    // Verificar productos existentes
-    const products = await Product.find().lean();
+    // Verificar productos existentes mediante Repository
+    const products = await productRepository.getAll();
 
     if (products.length === 0) {
+      const error = ERROR_CODES.PRODUCTS_REQUIRED;
+
       throw new ValidationError(
-        "Debe existir al menos un producto para generar pedidos"
+        error.message,
+        error.code
       );
     }
 

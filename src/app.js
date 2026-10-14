@@ -5,6 +5,7 @@ import productsRouter from "./routes/products.router.js";
 import usersRouter from "./routes/users.router.js";
 import mocksRouter from "./routes/mocks.router.js";
 
+import notFoundMiddleware from "./middlewares/notFound.middleware.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
 
 const app = express();
@@ -16,6 +17,9 @@ app.use(express.json());
 app.use("/api/products", productsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/mocks", mocksRouter);
+
+// Middleware para rutas inexistentes
+app.use(notFoundMiddleware);
 
 // Middleware global de errores
 app.use(errorMiddleware);
