@@ -1,28 +1,11 @@
 
 import mocksService from "../services/mocks.service.js";
-import { ValidationError } from "../errors/app.error.js";
-import { ERROR_CODES } from "../constants/error-codes.js";
+
 
 class MocksController {
   // Validar cantidad de registros solicitados
   getQuantity(req) {
-    const qty = req.query.qty ?? 10;
-
-    if (
-      String(qty).trim() === "" ||
-      !Number.isInteger(Number(qty)) ||
-      Number(qty) < 1 ||
-      Number(qty) > 100
-    ) {
-      const error = ERROR_CODES.INVALID_MOCK_QUANTITY;
-
-      throw new ValidationError(
-        error.message,
-        error.code
-      );
-    }
-
-    return Number(qty);
+    return req.query.qty ?? 10;
   }
 
   // Generar usuarios simulados

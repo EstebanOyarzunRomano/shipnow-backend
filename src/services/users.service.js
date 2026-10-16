@@ -71,8 +71,24 @@ class UserService {
   }
 
   // Actualizar usuario
+   // Actualizar usuario
   async updateUser(id, userData) {
+    if (
+      !userData ||
+      typeof userData !== "object" ||
+      Array.isArray(userData) ||
+      Object.keys(userData).length === 0
+    ) {
+      const error = ERROR_CODES.INVALID_DATA;
+
+      throw new ValidationError(
+        "Debe proporcionar al menos un campo para actualizar",
+        error.code
+      );
+    }
+
     const existingUser = await userRepository.getById(id);
+    
 
     if (!existingUser) {
       const error = ERROR_CODES.USER_NOT_FOUND;

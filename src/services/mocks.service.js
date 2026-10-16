@@ -24,6 +24,26 @@ import deliveryRepository from "../repositories/deliveries.repository.js";
 import productRepository from "../repositories/products.repository.js";
 
 class MocksService {
+
+  // Validar la cantidad de registros simulados
+  validateQuantity(qty = 10) {
+    if (
+      qty === null ||
+      String(qty).trim() === "" ||
+      !Number.isInteger(Number(qty)) ||
+      Number(qty) < 1 ||
+      Number(qty) > 100
+    ) {
+      const error = ERROR_CODES.INVALID_MOCK_QUANTITY;
+
+      throw new ValidationError(
+        error.message,
+        error.code
+      );
+    }
+
+    return Number(qty);
+  }
   // Generar un usuario ficticio
   generateUser(role = USER_ROLES.USER) {
     const firstName = faker.person.firstName();
@@ -43,14 +63,18 @@ class MocksService {
 
   // Generar usuarios comunes
   generateUsers(qty = 10) {
-    return Array.from({ length: qty }, () =>
+    const quantity = this.validateQuantity(qty);
+
+    return Array.from({ length: quantity }, () =>
       this.generateUser(USER_ROLES.USER)
     );
   }
 
   // Generar repartidores
   generateDrivers(qty = 10) {
-    return Array.from({ length: qty }, () =>
+    const quantity = this.validateQuantity(qty);
+
+    return Array.from({ length: quantity }, () =>
       this.generateUser(USER_ROLES.DRIVER)
     );
   }
@@ -92,8 +116,10 @@ class MocksService {
 
   // Generar productos ficticios
   generateProducts(qty = 10) {
+    const quantity = this.validateQuantity(qty);
+
     return Array.from(
-      { length: qty },
+      { length: quantity },
       () => this.generateProduct()
     );
   }
@@ -131,7 +157,9 @@ class MocksService {
 
   // Generar pedidos simulados
   generateOrders(qty = 10) {
-    return Array.from({ length: qty }, () => {
+    const quantity = this.validateQuantity(qty);
+
+    return Array.from({ length: quantity }, () => {
       const userId = new mongoose.Types.ObjectId();
       const productId = new mongoose.Types.ObjectId();
 
@@ -203,11 +231,11 @@ class MocksService {
     };
   }
 
-  // Generar entregas simuladas
-  
   // Generar entregas simuladas independientes
   generateDeliveries(qty = 10) {
-    return Array.from({ length: qty }, () => {
+    const quantity = this.validateQuantity(qty);
+
+    return Array.from({ length: quantity }, () => {
       const orderId = new mongoose.Types.ObjectId();
 
       const orderStatus = faker.helpers.arrayElement(
@@ -226,21 +254,23 @@ class MocksService {
 
   // Generar un conjunto de datos relacionados
   generateMockDataset(qty = 10) {
-    const users = this.generateUsers(qty).map(
+    const quantity = this.validateQuantity(qty);
+
+    const users = this.generateUsers(quantity).map(
       (user) => ({
         _id: new mongoose.Types.ObjectId(),
         ...user,
       })
     );
 
-    const drivers = this.generateDrivers(qty).map(
+    const drivers = this.generateDrivers(quantity).map(
       (driver) => ({
         _id: new mongoose.Types.ObjectId(),
         ...driver,
       })
     );
 
-    const products = this.generateProducts(qty).map(
+    const products = this.generateProducts(quantity).map(
       (product) => ({
         _id: new mongoose.Types.ObjectId(),
         ...product,
@@ -265,7 +295,7 @@ class MocksService {
     }
 
     const orders = Array.from(
-      { length: qty },
+      { length: quantity },
       () => {
         const user = faker.helpers.arrayElement(users);
         const product = faker.helpers.arrayElement(
@@ -311,18 +341,7 @@ class MocksService {
 
   // Insertar datos de prueba en MongoDB
   async seed(qty = 10) {
-    const quantity = Number(qty);
-
-    if (
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      quantity > 100
-    ) {
-      throw new ValidationError(
-        ERROR_CODES.INVALID_MOCK_QUANTITY.message,
-        ERROR_CODES.INVALID_MOCK_QUANTITY.code
-      );
-    }
+  const quantity = this.validateQuantity(qty);
 
     // Identificador único de esta ejecución
     const seedId = new mongoose.Types.ObjectId().toString();

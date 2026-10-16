@@ -25,6 +25,10 @@ const orderSchema = new mongoose.Schema(
           type: Number,
           required: true,
           min: 1,
+          validate: {
+            validator: Number.isInteger,
+            message: "La cantidad debe ser un número entero",
+          },
         },
       },
     ],

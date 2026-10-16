@@ -10,6 +10,7 @@ import {
 } from "../errors/app.error.js";
 
 class ProductService {
+  // Obtener todos los productos
   async getAllProducts(filters = {}) {
     const { onlyAvailable, ...repositoryFilters } = filters;
 
@@ -26,6 +27,7 @@ class ProductService {
     return products;
   }
 
+  // Obtener producto por ID
   async getProductById(id) {
     const product = await productRepository.getById(id);
 
@@ -38,7 +40,23 @@ class ProductService {
     return product;
   }
 
+  // Crear producto
   async createProduct(productData) {
+    if (
+      !productData ||
+      typeof productData !== "object" ||
+      Array.isArray(productData) ||
+      Object.keys(productData).length === 0
+    ) {
+      const error = ERROR_CODES.INVALID_DATA;
+
+      throw new ValidationError(
+        "Debe proporcionar datos válidos para crear el producto",
+        error.code
+      );
+    }
+
+    // Validar precio
     if (
       typeof productData.price !== "number" ||
       !Number.isFinite(productData.price) ||
@@ -49,6 +67,7 @@ class ProductService {
       throw new ValidationError(error.message, error.code);
     }
 
+    // Validar stock
     if (
       typeof productData.stock !== "number" ||
       !Number.isFinite(productData.stock) ||
@@ -60,6 +79,7 @@ class ProductService {
       throw new ValidationError(error.message, error.code);
     }
 
+    // Calcular el estado automáticamente
     const data = {
       ...productData,
       status:
@@ -71,7 +91,22 @@ class ProductService {
     return productRepository.create(data);
   }
 
+  // Actualizar producto
   async updateProduct(id, productData) {
+    if (
+      !productData ||
+      typeof productData !== "object" ||
+      Array.isArray(productData) ||
+      Object.keys(productData).length === 0
+    ) {
+      const error = ERROR_CODES.INVALID_DATA;
+
+      throw new ValidationError(
+        "Debe proporcionar al menos un campo para actualizar",
+        error.code
+      );
+    }
+
     const existingProduct = await productRepository.getById(id);
 
     if (!existingProduct) {
@@ -80,6 +115,7 @@ class ProductService {
       throw new NotFoundError(error.message, error.code);
     }
 
+    // Validar precio si se envía
     if (
       productData.price !== undefined &&
       (
@@ -93,6 +129,7 @@ class ProductService {
       throw new ValidationError(error.message, error.code);
     }
 
+    // Validar stock si se envía
     if (
       productData.stock !== undefined &&
       (
@@ -107,18 +144,25 @@ class ProductService {
       throw new ValidationError(error.message, error.code);
     }
 
-    const data = { ...productData };
+    // Evitar que el cliente controle directamente el estado
+    const { status, ...data } = productData;
 
-    if (productData.stock !== undefined) {
-      data.status =
-        productData.stock > 0
-          ? PRODUCT_STATUS.AVAILABLE
-          : PRODUCT_STATUS.OUT_OF_STOCK;
-    }
+    // Utilizar el stock nuevo o el existente
+    const finalStock =
+      data.stock !== undefined
+        ? data.stock
+        : existingProduct.stock;
+
+    // Calcular siempre el estado según el stock
+    data.status =
+      finalStock > 0
+        ? PRODUCT_STATUS.AVAILABLE
+        : PRODUCT_STATUS.OUT_OF_STOCK;
 
     return productRepository.updateById(id, data);
   }
 
+  // Eliminar producto
   async deleteProduct(id) {
     const product = await productRepository.deleteById(id);
 

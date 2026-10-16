@@ -26,12 +26,16 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
       default: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "El stock debe ser un número entero",
+      },
     },
 
     status: {
       type: String,
       enum: Object.values(PRODUCT_STATUS),
-      default: PRODUCT_STATUS.AVAILABLE,
+      default: PRODUCT_STATUS.OUT_OF_STOCK,
     },
 
     seedId: {
