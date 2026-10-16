@@ -52,6 +52,13 @@ const orderSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    seedId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
   },
   {
     timestamps: true,

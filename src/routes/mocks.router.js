@@ -36,4 +36,10 @@ router.post(
   mocksController.seed.bind(mocksController)
 );
 
+// Eliminar datos generados por una ejecución del seed
+router.delete(
+  "/",
+  mocksController.deleteSeed.bind(mocksController)
+);
+
 export default router;

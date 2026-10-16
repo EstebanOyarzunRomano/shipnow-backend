@@ -89,7 +89,6 @@ class MocksController {
   getDataset(req, res, next) {
     try {
       const qty = this.getQuantity(req);
-
       const dataset = mocksService.generateMockDataset(qty);
 
       res.status(200).json({
@@ -112,6 +111,22 @@ class MocksController {
       const result = await mocksService.seed(qty);
 
       res.status(201).json({
+        status: "success",
+        payload: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Eliminar registros generados por una ejecución del seed
+  async deleteSeed(req, res, next) {
+    try {
+      const { seedId } = req.query;
+
+      const result = await mocksService.deleteSeed(seedId);
+
+      res.status(200).json({
         status: "success",
         payload: result,
       });

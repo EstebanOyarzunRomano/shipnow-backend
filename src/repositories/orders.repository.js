@@ -28,6 +28,41 @@ class OrderRepository {
     });
   }
 
+
+  // Consultar pedidos de una ejecución del seed
+  async getBySeedId(seedId, session = null) {
+    return Order.find({ seedId })
+      .session(session)
+      .lean();
+  }
+
+  // Buscar pedidos ajenos al seed que referencien
+  // usuarios o productos que se planea eliminar
+  async findExternalReferences(
+    userIds,
+    productIds,
+    seedId,
+    session = null
+  ) {
+    return Order.find({
+      seedId: { $ne: seedId },
+      $or: [
+        { user: { $in: userIds } },
+        { "products.product": { $in: productIds } },
+      ],
+    })
+      .session(session)
+      .lean();
+  }
+
+  // Eliminar pedidos de una ejecución del seed
+  async deleteBySeedId(seedId, session = null) {
+    return Order.deleteMany(
+      { seedId },
+      { session }
+    );
+  }
+
   async deleteById(id) {
     return Order.findByIdAndDelete(id).lean();
   }

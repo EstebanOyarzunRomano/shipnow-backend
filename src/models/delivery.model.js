@@ -32,6 +32,13 @@ const deliverySchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    seedId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
   },
   {
     timestamps: true,

@@ -28,6 +28,13 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(USER_ROLES),
       default: USER_ROLES.USER,
     },
+
+    seedId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
   },
   {
     timestamps: true,

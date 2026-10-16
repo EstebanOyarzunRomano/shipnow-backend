@@ -33,6 +33,13 @@ const productSchema = new mongoose.Schema(
       enum: Object.values(PRODUCT_STATUS),
       default: PRODUCT_STATUS.AVAILABLE,
     },
+
+    seedId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
   },
   {
     timestamps: true,

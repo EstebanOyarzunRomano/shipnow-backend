@@ -100,4 +100,23 @@ export const ERROR_CODES = Object.freeze({
     message: "El email no puede estar vacío",
     statusCode: 400,
   }),
+  
+  INVALID_SEED_ID: {
+    code: "INVALID_SEED_ID",
+    message: "El seedId es obligatorio y debe ser un identificador válido",
+    statusCode: 400,
+  },
+
+  SEED_NOT_FOUND: {
+    code: "SEED_NOT_FOUND",
+    message: "No existen registros para el seedId indicado",
+    statusCode: 404,
+  },
+
+  SEED_HAS_EXTERNAL_REFERENCES: {
+    code: "SEED_HAS_EXTERNAL_REFERENCES",
+    message:
+      "No se pueden eliminar los mocks porque existen registros externos que los referencian",
+    statusCode: 409,
+  },
 });

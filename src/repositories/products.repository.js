@@ -29,6 +29,28 @@ class ProductRepository {
     }).lean();
   }
 
+  async createMany(productsData, session = null) {
+    return Product.insertMany(productsData, {
+      session,
+      ordered: true,
+    });
+  }
+
+    // Consultar productos generados por una ejecución del seed
+  async getBySeedId(seedId, session = null) {
+    return Product.find({ seedId })
+      .session(session)
+      .lean();
+  }
+
+  // Eliminar productos generados por una ejecución del seed
+  async deleteBySeedId(seedId, session = null) {
+    return Product.deleteMany(
+      { seedId },
+      { session }
+    );
+  }
+
   async deleteById(id) {
     return Product.findByIdAndDelete(id).lean();
   }

@@ -31,6 +31,41 @@ class DeliveryRepository {
     });
   }
 
+
+  // Consultar entregas de una ejecución del seed
+  async getBySeedId(seedId, session = null) {
+    return Delivery.find({ seedId })
+      .session(session)
+      .lean();
+  }
+
+  // Buscar entregas ajenas al seed que referencien
+  // pedidos o repartidores que se planea eliminar
+  async findExternalReferences(
+    orderIds,
+    driverIds,
+    seedId,
+    session = null
+  ) {
+    return Delivery.find({
+      seedId: { $ne: seedId },
+      $or: [
+        { order: { $in: orderIds } },
+        { driver: { $in: driverIds } },
+      ],
+    })
+      .session(session)
+      .lean();
+  }
+
+  // Eliminar entregas de una ejecución del seed
+  async deleteBySeedId(seedId, session = null) {
+    return Delivery.deleteMany(
+      { seedId },
+      { session }
+    );
+  }
+
   async deleteById(id) {
     return Delivery.findByIdAndDelete(id).lean();
   }

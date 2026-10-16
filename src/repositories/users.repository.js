@@ -40,6 +40,21 @@ class UserRepository {
     }).lean();
   }
 
+  // Consultar usuarios generados por una ejecución del seed
+  async getBySeedId(seedId, session = null) {
+    return User.find({ seedId })
+      .session(session)
+      .lean();
+  }
+
+  // Eliminar usuarios generados por una ejecución del seed
+  async deleteBySeedId(seedId, session = null) {
+    return User.deleteMany(
+      { seedId },
+      { session }
+    );
+  }
+
   async deleteById(id) {
     return User.findByIdAndDelete(id).lean();
   }
