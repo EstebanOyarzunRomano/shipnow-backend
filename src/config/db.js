@@ -1,27 +1,24 @@
-
 import mongoose from "mongoose";
 import config from "./env.config.js";
+import logger from "./logger.js";
 
 const connectDB = async () => {
   try {
+    // Establecer conexión con MongoDB
     await mongoose.connect(config.mongodbUri);
-    console.log(
-      "Base de datos activa:",
-      mongoose.connection.name
+
+    // Registrar conexión exitosa y base de datos activa
+    logger.info(
+      `MongoDB conectado correctamente - Base de datos: ${mongoose.connection.name}`
     );
 
-    console.log("Conectado correctamente a MongoDB");
-
-    console.log(
-      "Base de datos activa:",
-      mongoose.connection.name
-    );
   } catch (error) {
-    console.error(
-      "Error al conectar con MongoDB:",
-      error.message
+    // Registrar el error de conexión
+    logger.error(
+      `Error al conectar con MongoDB: ${error.stack || error.message}`
     );
 
+    // Propagar el error para impedir el inicio del servidor
     throw error;
   }
 };

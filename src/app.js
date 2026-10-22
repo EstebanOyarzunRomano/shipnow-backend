@@ -1,9 +1,9 @@
-
 import express from "express";
 
 import productsRouter from "./routes/products.router.js";
 import usersRouter from "./routes/users.router.js";
 import mocksRouter from "./routes/mocks.router.js";
+import loggerRouter from "./routes/logger.router.js";
 
 import notFoundMiddleware from "./middlewares/notFound.middleware.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
@@ -17,6 +17,11 @@ app.use(express.json());
 app.use("/api/products", productsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/mocks", mocksRouter);
+
+// Endpoint de prueba disponible únicamente en desarrollo
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api", loggerRouter);
+}
 
 // Middleware para rutas inexistentes
 app.use(notFoundMiddleware);

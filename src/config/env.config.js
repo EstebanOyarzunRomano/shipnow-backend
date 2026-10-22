@@ -20,6 +20,15 @@ if (!Number.isInteger(port) || port <= 0 || port > 65535) {
   );
 }
 
+// Validar el entorno de ejecución
+const allowedEnvironments = ["development", "production", "test"];
+
+if (!allowedEnvironments.includes(process.env.NODE_ENV)) {
+  throw new Error(
+    "NODE_ENV debe ser development, production o test"
+  );
+}
+
 const config = Object.freeze({
   port,
   mongodbUri: process.env.MONGODB_URI,
