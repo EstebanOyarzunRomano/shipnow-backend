@@ -1,79 +1,59 @@
-
 import productService from "../services/products.service.js";
+import asyncHandler from "../middlewares/asyncHandler.js";
 
 class ProductController {
   // Obtener todos los productos
-  async getAll(req, res, next) {
-    try {
-      const products = await productService.getAllProducts(req.query);
+  getAll = asyncHandler(async (req, res) => {
+    const products = await productService.getAllProducts(req.query);
 
-      res.status(200).json({
-        status: "success",
-        payload: products,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+    res.status(200).json({
+      status: "success",
+      payload: products,
+    });
+  });
 
   // Obtener producto por ID
-  async getById(req, res, next) {
-    try {
-      const product = await productService.getProductById(req.params.id);
+  getById = asyncHandler(async (req, res) => {
+    const product = await productService.getProductById(req.params.id);
 
-      res.status(200).json({
-        status: "success",
-        payload: product,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+    res.status(200).json({
+      status: "success",
+      payload: product,
+    });
+  });
 
   // Crear producto
-  async create(req, res, next) {
-    try {
-      const product = await productService.createProduct(req.body);
+  create = asyncHandler(async (req, res) => {
+    const product = await productService.createProduct(req.body);
 
-      res.status(201).json({
-        status: "success",
-        payload: product,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+    res.status(201).json({
+      status: "success",
+      payload: product,
+    });
+  });
 
   // Actualizar producto
-  async update(req, res, next) {
-    try {
-      const product = await productService.updateProduct(
-        req.params.id,
-        req.body
-      );
+  update = asyncHandler(async (req, res) => {
+    const product = await productService.updateProduct(
+      req.params.id,
+      req.body
+    );
 
-      res.status(200).json({
-        status: "success",
-        payload: product,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+    res.status(200).json({
+      status: "success",
+      payload: product,
+    });
+  });
 
   // Eliminar producto
-  async delete(req, res, next) {
-    try {
-      const product = await productService.deleteProduct(req.params.id);
+  delete = asyncHandler(async (req, res) => {
+    const product = await productService.deleteProduct(req.params.id);
 
-      res.status(200).json({
-        status: "success",
-        payload: product,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+    res.status(200).json({
+      status: "success",
+      payload: product,
+    });
+  });
 }
 
 const productController = new ProductController();
