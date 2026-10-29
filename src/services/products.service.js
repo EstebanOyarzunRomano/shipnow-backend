@@ -1,5 +1,6 @@
 
 import productRepository from "../repositories/products.repository.js";
+import logger from "../config/logger.js";
 
 import { PRODUCT_STATUS } from "../constants/index.js";
 import { ERROR_CODES } from "../constants/error-codes.js";
@@ -12,6 +13,8 @@ import {
 class ProductService {
   // Obtener todos los productos
   async getAllProducts(filters = {}) {
+    logger.debug("Consultando listado de productos");
+
     const { onlyAvailable, ...repositoryFilters } = filters;
 
     if (onlyAvailable === "true") {
@@ -21,14 +24,28 @@ class ProductService {
     const products = await productRepository.getAll(repositoryFilters);
 
     if (onlyAvailable === "true") {
-      return products.filter((product) => product.stock > 0);
+      const availableProducts = products.filter(
+        (product) => product.stock > 0
+      );
+
+      logger.debug(
+        `Consulta completada. Productos disponibles: ${availableProducts.length}`
+      );
+
+      return availableProducts;
     }
+
+    logger.debug(
+      `Consulta completada. Productos encontrados: ${products.length}`
+    );
 
     return products;
   }
 
   // Obtener producto por ID
   async getProductById(id) {
+    logger.debug(`Buscando producto con ID: ${id}`);
+
     const product = await productRepository.getById(id);
 
     if (!product) {
@@ -36,6 +53,8 @@ class ProductService {
 
       throw new NotFoundError(error.message, error.code);
     }
+
+    logger.debug(`Producto encontrado: ${id}`);
 
     return product;
   }
@@ -88,7 +107,13 @@ class ProductService {
           : PRODUCT_STATUS.OUT_OF_STOCK,
     };
 
-    return productRepository.create(data);
+    const product = await productRepository.create(data);
+
+    logger.info(
+      `Producto creado correctamente. ID: ${product._id}`
+    );
+
+    return product;
   }
 
   // Actualizar producto
@@ -106,6 +131,8 @@ class ProductService {
         error.code
       );
     }
+
+    logger.debug(`Iniciando actualización de producto: ${id}`);
 
     const existingProduct = await productRepository.getById(id);
 
@@ -159,11 +186,22 @@ class ProductService {
         ? PRODUCT_STATUS.AVAILABLE
         : PRODUCT_STATUS.OUT_OF_STOCK;
 
-    return productRepository.updateById(id, data);
+    const updatedProduct = await productRepository.updateById(
+      id,
+      data
+    );
+
+    logger.info(
+      `Producto actualizado correctamente. ID: ${id}`
+    );
+
+    return updatedProduct;
   }
 
   // Eliminar producto
   async deleteProduct(id) {
+    logger.debug(`Iniciando eliminación de producto: ${id}`);
+
     const product = await productRepository.deleteById(id);
 
     if (!product) {
@@ -171,6 +209,10 @@ class ProductService {
 
       throw new NotFoundError(error.message, error.code);
     }
+
+    logger.info(
+      `Producto eliminado correctamente. ID: ${id}`
+    );
 
     return product;
   }

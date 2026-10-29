@@ -1,11 +1,9 @@
 # ShipNow Backend
-
-API REST desarrollada con **Node.js, Express, MongoDB Atlas y Mongoose** para el proyecto ShipNow de Backend III. Incluye arquitectura por capas, mocks, seed transaccional, manejo centralizado de errores y logging profesional con Winston.
+API REST desarrollada con **Node.js, Express, MongoDB Atlas y Mongoose** para el proyecto ShipNow de Backend III. Incluye arquitectura por capas, mocks, seed transaccional, manejo centralizado de errores, logging con Winston y pruebas automatizadas con Jest y Supertest.
 
 El proyecto utiliza una **arquitectura por capas** y cuenta con gestión de usuarios y productos (Módulo 1), además de **mocking y carga controlada de datos de prueba** (Módulo 2) para usuarios, repartidores, productos, pedidos y entregas.
 
 ## Tecnologías
-
 - Node.js y Express
 - MongoDB Atlas y Mongoose
 - @faker-js/faker con localización `fakerES` (datos simulados)
@@ -13,13 +11,12 @@ El proyecto utiliza una **arquitectura por capas** y cuenta con gestión de usua
 - Nodemon (desarrollo)
 - Winston (logging centralizado)
 - winston-daily-rotate-file (rotación y retención de logs)
+- Jest y Supertest (pruebas automatizadas)
 
 ## Arquitectura
-
 ```text
 Router → Controller → Service → Repository → Model → MongoDB
 ```
-
 - **Router:** define rutas HTTP y las conecta con sus controladores, sin lógica de negocio.
 - **Controller:** interpreta parámetros, invoca servicios y construye respuestas HTTP. Sus métodos están envueltos con `asyncHandler`, que deriva automáticamente los errores al middleware global.
 - **Service:** aplica reglas de negocio, validaciones y generación de datos simulados.
@@ -31,13 +28,12 @@ Router → Controller → Service → Repository → Model → MongoDB
 Los endpoints GET de mocking generan datos **en memoria** y no los insertan en la base. Los endpoints de seed y limpieza usan repositorios y transacciones para persistir o eliminar datos relacionados.
 
 ## Estructura del proyecto
-
 ```text
 src/
 ├── config/
 │   ├── db.js
 │   ├── env.config.js
-│   └── logger.js
+│   └── logger.js
 ├── constants/
 │   ├── error-codes.js
 │   └── index.js
@@ -63,7 +59,7 @@ src/
 │   └── users.repository.js
 ├── routes/
 │   ├── logger.router.js
-│   ├── mocks.router.js
+│   ├── mocks.router.js
 │   ├── products.router.js
 │   └── users.router.js
 ├── services/
@@ -72,30 +68,33 @@ src/
 │   └── users.service.js
 ├── app.js
 └── server.js
+
+tests/
+├── logger.test.js
+└── logger-file.test.js
 ```
 
 `server.js` carga las variables de entorno antes de inicializar dependencias, conecta con MongoDB e inicia el servidor. `app.js` configura Express, los routers, el middleware de rutas inexistentes y el manejador global de errores, en ese orden.
 
 ## Instalación y configuración
-
-1. Clonar el repositorio:
+1\. Clonar el repositorio:
 
    ```bash
    git clone https://github.com/EstebanOyarzunRomano/shipnow-backend.git
    cd shipnow-backend
    ```
-2. Instalar las dependencias:
+2\. Instalar las dependencias:
    ```bash
    npm install
    ```
-3. Crear `.env` a partir de `.env.example`:
+3\. Crear `.env` a partir de `.env.example`:
    ```env
    PORT=8080
    MONGODB_URI=TU_URI_DE_MONGODB
    NODE_ENV=development
    ```
    Reemplazar `TU_URI_DE_MONGODB` por una cadena de conexión válida a una **base de desarrollo/pruebas**. No subir `.env` ni credenciales a GitHub.
-4. Iniciar el servidor:
+4\. Iniciar el servidor:
    ```bash
    npm run dev
    ```
@@ -316,12 +315,12 @@ No requiere body. Respuesta ilustrativa `201 Created` **cuando ya existen produc
 El `seedId` es diferente en cada ejecución y se guarda en los documentos generados para permitir su limpieza posterior. El servicio asigna emails únicos por ejecución.
 **Seed autosuficiente:** si existen productos con `status: "available"` y `stock > 0`, los reutiliza sin etiquetarlos ni modificar su stock. Si no encuentra ninguno, genera e inserta `qty` productos disponibles dentro de la misma transacción. En ese caso, para `qty=2`, `inserted.products` vale `2` y `totalInserted` vale `10`.
 El proceso:
-1. Valida `qty` y genera un `seedId`.
-2. Busca productos disponibles; si no existen, genera productos y los inserta.
-3. Inserta usuarios y repartidores, conservando sus `_id` reales.
-4. Crea pedidos vinculados a usuarios y productos disponibles, calculando sus totales.
-5. Crea entregas vinculadas a los pedidos y repartidores insertados, con estados coherentes.
-6. Ejecuta las inserciones mediante `session.withTransaction()` y devuelve el resumen.
+1\. Valida `qty` y genera un `seedId`.
+2\. Busca productos disponibles; si no existen, genera productos y los inserta.
+3\. Inserta usuarios y repartidores, conservando sus `_id` reales.
+4\. Crea pedidos vinculados a usuarios y productos disponibles, calculando sus totales.
+5\. Crea entregas vinculadas a los pedidos y repartidores insertados, con estados coherentes.
+6\. Ejecuta las inserciones mediante `session.withTransaction()` y devuelve el resumen.
 Las transacciones requieren una instancia de MongoDB compatible, como MongoDB Atlas con replica set. Si falla una operación transaccional, se revierten los cambios de esa transacción.
 ### Limpieza controlada por `seedId`
 ```http
@@ -362,11 +361,11 @@ No requiere body. Respuesta ilustrativa `200 OK` cuando el seed tiene dos usuari
 
 ```
 La limpieza:
-1. Valida que `seedId` sea un identificador válido.
-2. Recupera los usuarios, productos, pedidos y entregas etiquetados con ese `seedId`.
-3. Devuelve `404 SEED_NOT_FOUND` si no encuentra registros.
-4. Comprueba si pedidos o entregas **externos a ese seed** referencian documentos que se pretende eliminar. Si existen, responde `409 SEED_HAS_EXTERNAL_REFERENCES` y **no elimina el seed**.
-5. Si no hay conflictos, elimina primero las entregas, después los pedidos, usuarios y productos del seed, todo dentro de `session.withTransaction()`.
+1\. Valida que `seedId` sea un identificador válido.
+2\. Recupera los usuarios, productos, pedidos y entregas etiquetados con ese `seedId`.
+3\. Devuelve `404 SEED_NOT_FOUND` si no encuentra registros.
+4\. Comprueba si pedidos o entregas **externos a ese seed** referencian documentos que se pretende eliminar. Si existen, responde `409 SEED_HAS_EXTERNAL_REFERENCES` y **no elimina el seed**.
+5\. Si no hay conflictos, elimina primero las entregas, después los pedidos, usuarios y productos del seed, todo dentro de `session.withTransaction()`.
 La limpieza no elimina productos existentes reutilizados por el seed, ni documentos sin ese `seedId`. Los registros creados antes de implementar el campo `seedId` tampoco son alcanzados por esta operación.
 **Seguridad:** `POST /api/mocks/seed` y `DELETE /api/mocks` son operaciones de desarrollo/pruebas. No deben exponerse en producción sin autenticación, autorización y restricciones de entorno.
 ### Verificación en MongoDB Atlas
@@ -516,25 +515,25 @@ Respuesta `400 Bad Request`:
 ## Pruebas manuales y casos sugeridos
 Se verificaron manualmente en Postman casos de cantidades inválidas, errores de usuarios y productos, rutas inexistentes, JSON malformado y la inserción/eliminación de un seed de dos registros por entidad (ocho documentos insertados y ocho eliminados). Los siguientes casos conforman una lista de verificación; algunos requieren pruebas adicionales.
 Utilizar Thunder Client o Postman y una base de datos de pruebas:
-1. `GET /api/mocks/users?qty=3`: comprobar `200` y tres usuarios con rol `user`.
-2. `GET /api/mocks/drivers?qty=3`: comprobar tres usuarios con rol `driver`.
-3. `GET /api/mocks/orders?qty=3` y `GET /api/mocks/deliveries?qty=3`: verificar estados, prioridades y fechas.
-4. `GET /api/mocks/dataset?qty=3`: comprobar relaciones, totales, stock y estados coherentes, sin persistencia.
-5. Probar `qty=abc`, `qty=0`, `qty=-1`, `qty=1.5`, `qty=101` y `qty=`: comprobar `400 INVALID_MOCK_QUANTITY`.
-6. `GET /api/noexiste`: comprobar `404 ROUTE_NOT_FOUND`.
-7. Enviar JSON malformado con `Content-Type: application/json`: comprobar `400 INVALID_JSON`.
-8. `GET /api/products` y `GET /api/users`: comprobar `200` y estructura `status` / `payload`.
-9. `POST /api/mocks/seed?qty=2`: comprobar `201`, `seedId`, cantidades y referencias persistidas.
-10. Probar el seed en una base sin productos disponibles: verificar creación transaccional de productos con stock positivo.
-11. `DELETE /api/mocks?seedId=incorrecto`: comprobar `400 INVALID_SEED_ID`.
-12. `DELETE /api/mocks?seedId=000000000000000000000000`: comprobar `404 SEED_NOT_FOUND`.
-13. Crear una referencia externa de prueba a un usuario del seed, con tipo BSON `ObjectId`, y comprobar `409 SEED_HAS_EXTERNAL_REFERENCES`. Confirmar que el seed no fue eliminado.
-14. Eliminar la referencia externa de prueba y repetir el DELETE: comprobar `200`, cantidades eliminadas y conservación de productos reutilizados.
-15. Repetir el mismo DELETE: comprobar `404 SEED_NOT_FOUND`.
+1\. `GET /api/mocks/users?qty=3`: comprobar `200` y tres usuarios con rol `user`.
+2\. `GET /api/mocks/drivers?qty=3`: comprobar tres usuarios con rol `driver`.
+3\. `GET /api/mocks/orders?qty=3` y `GET /api/mocks/deliveries?qty=3`: verificar estados, prioridades y fechas.
+4\. `GET /api/mocks/dataset?qty=3`: comprobar relaciones, totales, stock y estados coherentes, sin persistencia.
+5\. Probar `qty=abc`, `qty=0`, `qty=-1`, `qty=1.5`, `qty=101` y `qty=`: comprobar `400 INVALID_MOCK_QUANTITY`.
+6\. `GET /api/noexiste`: comprobar `404 ROUTE_NOT_FOUND`.
+7\. Enviar JSON malformado con `Content-Type: application/json`: comprobar `400 INVALID_JSON`.
+8\. `GET /api/products` y `GET /api/users`: comprobar `200` y estructura `status` / `payload`.
+9\. `POST /api/mocks/seed?qty=2`: comprobar `201`, `seedId`, cantidades y referencias persistidas.
+10\. Probar el seed en una base sin productos disponibles: verificar creación transaccional de productos con stock positivo.
+11\. `DELETE /api/mocks?seedId=incorrecto`: comprobar `400 INVALID_SEED_ID`.
+12\. `DELETE /api/mocks?seedId=000000000000000000000000`: comprobar `404 SEED_NOT_FOUND`.
+13\. Crear una referencia externa de prueba a un usuario del seed, con tipo BSON `ObjectId`, y comprobar `409 SEED_HAS_EXTERNAL_REFERENCES`. Confirmar que el seed no fue eliminado.
+14\. Eliminar la referencia externa de prueba y repetir el DELETE: comprobar `200`, cantidades eliminadas y conservación de productos reutilizados.
+15\. Repetir el mismo DELETE: comprobar `404 SEED_NOT_FOUND`.
 **Prueba de regresión posterior a `asyncHandler`:** ejecutar `GET /api/mocks/users?qty=abc`, `GET /api/products/123` y una petición con JSON malformado. Confirmar que las respuestas mantienen el código HTTP y el formato `{ status, code, message }`. Probar también `GET /api/users` y `GET /api/products` para comprobar que siguen devolviendo `200 OK`.
 No utilizar documentos de producción para las pruebas de inserción, conflictos o limpieza.
 ## Módulo 4 — Logging y monitoreo básico
-ShipNow utiliza **Winston** como logger centralizado (`src/config/logger.js`) y **winston-daily-rotate-file** para conservar registros de errores con rotación. Los eventos se registran con fecha, hora, nivel y mensaje. El logger se integra con el inicio del servidor, la conexión a MongoDB, el middleware global de errores y las operaciones de mocks y seed.
+ShipNow utiliza **Winston** como logger centralizado (`src/config/logger.js`) y **winston-daily-rotate-file** para conservar registros de errores con rotación. Los eventos se registran con fecha, hora, nivel y mensaje. El logger se integra con el inicio del servidor, la conexión a MongoDB, el middleware global de errores, las operaciones de mocks y seed, y los servicios de usuarios y productos.
 ### Niveles de logging
 | Nivel | Prioridad | Uso |
 |---|---:|---|
@@ -554,23 +553,35 @@ El archivo `.env` debe definir `NODE_ENV` y `server.js` carga `dotenv/config` an
 ### Endpoint de prueba
 Con `NODE_ENV=development` y el servidor iniciado:
 ```http
+
 GET http://localhost:8080/api/logger-test
+
 ```
 Respuesta esperada (`200 OK`):
 ```json
+
 {
-  "status": "success",
-  "message": "Prueba del logger ejecutada correctamente",
-  "levels": ["debug", "http", "info", "warning", "error", "fatal"]
+
+  "status": "success",
+
+  "message": "Prueba del logger ejecutada correctamente",
+
+  "levels": ["debug", "http", "info", "warning", "error", "fatal"]
+
 }
+
 ```
 La petición genera un evento de cada nivel. En producción la ruta no se registra y responde `404 ROUTE_NOT_FOUND`; se verificó manualmente este comportamiento. **El endpoint es una herramienta interna de diagnóstico, no una operación de negocio.**
 ### Persistencia y rotación
 Los errores se guardan en la carpeta `logs/` de la raíz del proyecto, creada automáticamente cuando se inicializa el logger. El transporte de archivos utiliza:
 ```text
+
 logs/
+
 ├── error-YYYY-MM-DD.log
-└── .<archivo-de-auditoría-de-rotación>
+
+└── .\<archivo-de-auditoría-de-rotación>
+
 ```
 - Solo se persisten los niveles **`error` y `fatal`**; `warning`, `info`, `http` y `debug` no se escriben en el archivo de errores.
 - Los archivos contienen timestamp, nivel y mensaje, sin códigos ANSI de color.
@@ -579,31 +590,73 @@ logs/
 - La escritura de `error` y `fatal` fue comprobada manualmente; la rotación efectiva por fecha o tamaño **no se ensayó**.
 Ejemplo de registro:
 ```text
+
 2026-10-22 15:04:06 [error] Logger test: error de prueba
+
 2026-10-22 15:04:06 [fatal] Logger test: falla crítica simulada
+
 ```
-
 ### Integración con el manejo de errores
-
 El middleware global conserva el formato JSON `{ status, code, message }` y utiliza Winston para registrar los errores. Los errores operacionales habituales se registran como advertencias; los inesperados como errores. Los fallos críticos del arranque se registran como `fatal`. Los mensajes internos y trazas no deben exponerse al cliente en las respuestas HTTP 500.
+### Observabilidad de usuarios y productos
+Los servicios `users.service.js` y `products.service.js` utilizan el logger centralizado sin alterar sus reglas de negocio ni sus respuestas HTTP:
+| Operación | Nivel | Evento registrado |
+|---|---|---|
+| Consultar listado o recurso por ID | `debug` | Inicio y finalización de la consulta; identificador cuando corresponde |
+| Crear usuario o producto | `info` | Confirmación de creación e ID generado |
+| Actualizar usuario o producto | `debug` / `info` | Inicio de actualización y confirmación exitosa |
+| Eliminar usuario o producto | `debug` / `info` | Inicio de eliminación y confirmación exitosa |
+Los errores siguen registrándose en el middleware global, evitando duplicaciones. No se registran contraseñas, emails ni cuerpos completos de peticiones. Con `NODE_ENV=production`, los mensajes `debug` quedan deshabilitados; los eventos `info` se muestran en consola, pero no se escriben en el archivo exclusivo de errores.
+### Pruebas automatizadas con Jest y Supertest
+El proyecto incluye dos pruebas de regresión enfocadas en observabilidad. Se ejecutan sin iniciar `server.js` ni abrir un puerto HTTP, porque Supertest utiliza directamente la aplicación exportada desde `src/app.js`.
+**Ejecutar las pruebas:**
+```bash
+npm install
+npm test
+```
+El script definido en `package.json` es:
+```json
+"test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
+```
+| Archivo | Verificación |
+|---|---|
+| `tests/logger.test.js` | `GET /api/logger-test` responde HTTP `200` y devuelve un cuerpo de respuesta. |
+| `tests/logger-file.test.js` | Un mensaje único enviado con `logger.error()` se persiste en el archivo diario de errores dentro de `logs/`. |
+
+**Resultado verificado el 29/10/2026:** 2 suites aprobadas, 2 tests aprobados, 0 fallidos. Los tests se ejecutaron en aproximadamente 2 segundos. Jest puede mostrar una advertencia de VM Modules experimental y mensajes del transporte de consola de Winston; no representan fallas de las pruebas.
+
+**Alcance:** estas pruebas validan la respuesta HTTP del endpoint de diagnóstico y la persistencia de un error. No constituyen una suite completa de CRUD ni verifican todavía la rotación efectiva por tamaño, la retención temporal o el comportamiento en producción.
+
+### Verificación funcional posterior a las mejoras
+
+Se comprobaron manualmente los siguientes escenarios con la API conectada a MongoDB:
+| Petición | Resultado observado | Logging |
+|---|---|---|
+| `GET /api/products` | Respuesta exitosa, tres productos | `debug` de consulta y cantidad encontrada |
+| `GET /api/users` | HTTP `200`, respuesta exitosa | `debug` de inicio y finalización |
+| `POST /api/products` | HTTP `201`, producto temporal creado | `info` con ID generado |
+| `DELETE /api/products/:id` | HTTP `200`, producto temporal eliminado | `debug` de inicio e `info` de confirmación |
+
+La verificación manual de las operaciones de escritura se realizó sobre un producto temporal, que fue eliminado al terminar. Las operaciones de escritura de usuarios y la actualización de productos no forman parte de estas comprobaciones manuales.
 
 ### Verificación manual del Módulo 4
+1\. Iniciar la API con `NODE_ENV=development` y ejecutar `GET /api/logger-test`: comprobar `200` y los seis niveles en consola.
 
-1. Iniciar la API con `NODE_ENV=development` y ejecutar `GET /api/logger-test`: comprobar `200` y los seis niveles en consola.
-2. Abrir `logs/error-YYYY-MM-DD.log`: comprobar que aparecen `error` y `fatal`, pero no los niveles menos graves.
-3. Ejecutar `GET /api/mocks/users?qty=5`: comprobar `200` y el registro informativo de generación.
-4. Ejecutar `GET /api/mocks/users?qty=-5`: comprobar `400 INVALID_MOCK_QUANTITY` y el registro `warning`.
-5. Reiniciar con `NODE_ENV=production` y ejecutar `GET /api/logger-test`: comprobar `404 ROUTE_NOT_FOUND` y ausencia de los seis eventos simulados.
-6. Restaurar `NODE_ENV=development` después de la prueba.
+2\. Abrir `logs/error-YYYY-MM-DD.log`: comprobar que aparecen `error` y `fatal`, pero no los niveles menos graves.
+
+3\. Ejecutar `GET /api/mocks/users?qty=5`: comprobar `200` y el registro informativo de generación.
+
+4\. Ejecutar `GET /api/mocks/users?qty=-5`: comprobar `400 INVALID_MOCK_QUANTITY` y el registro `warning`.
+
+5\. Reiniciar con `NODE_ENV=production` y ejecutar `GET /api/logger-test`: comprobar `404 ROUTE_NOT_FOUND` y ausencia de los seis eventos simulados.
+
+6\. Restaurar `NODE_ENV=development` después de la prueba.
 
 ### Archivos excluidos de Git
-
 El `.gitignore` debe excluir `node_modules/`, `.env` y `logs/` (incluidos los archivos de auditoría), así como los archivos `*.log`. Se mantiene `.env.example` sin credenciales para documentar las variables requeridas. Se verificó con `git status --short` que los archivos generados dentro de `logs/` no aparezcan para seguimiento.
 
 ## Seguridad y control de versiones
-
 No subir al repositorio:
-
 - `node_modules/`
 - `.env`
 - Credenciales, secretos o cadenas de conexión privadas
@@ -611,5 +664,4 @@ No subir al repositorio:
 Mantener `.env.example` con valores de referencia sin secretos. Los endpoints de seed y limpieza están destinados al entorno de desarrollo y **no deben exponerse públicamente en producción sin controles de autenticación, autorización y restricciones de entorno**.
 
 ## Autor
-
 Esteban Damian Oyarzun Romano

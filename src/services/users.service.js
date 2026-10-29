@@ -1,4 +1,5 @@
 import userRepository from "../repositories/users.repository.js";
+import logger from "../config/logger.js";
 
 import { USER_ROLES } from "../constants/index.js";
 import { ERROR_CODES } from "../constants/error-codes.js";
@@ -12,11 +13,19 @@ import {
 class UserService {
   // Obtener todos los usuarios
   async getAllUsers(filters = {}) {
-    return userRepository.getAll(filters);
+    logger.debug("Consultando listado de usuarios");
+
+    const users = await userRepository.getAll(filters);
+
+    logger.debug("Consulta de usuarios completada");
+
+    return users;
   }
 
   // Obtener usuario por ID
   async getUserById(id) {
+    logger.debug(`Buscando usuario con ID: ${id}`);
+
     const user = await userRepository.getById(id);
 
     if (!user) {
@@ -24,6 +33,8 @@ class UserService {
 
       throw new NotFoundError(error.message, error.code);
     }
+
+    logger.debug(`Usuario encontrado: ${id}`);
 
     return user;
   }
@@ -67,11 +78,14 @@ class UserService {
       role: userData.role ?? USER_ROLES.USER,
     };
 
-    return userRepository.create(data);
+    const user = await userRepository.create(data);
+
+    logger.info(`Usuario creado correctamente. ID: ${user._id}`);
+
+    return user;
   }
 
   // Actualizar usuario
-   // Actualizar usuario
   async updateUser(id, userData) {
     if (
       !userData ||
@@ -87,8 +101,9 @@ class UserService {
       );
     }
 
+    logger.debug(`Iniciando actualización de usuario: ${id}`);
+
     const existingUser = await userRepository.getById(id);
-    
 
     if (!existingUser) {
       const error = ERROR_CODES.USER_NOT_FOUND;
@@ -133,11 +148,17 @@ class UserService {
       data.email = email;
     }
 
-    return userRepository.updateById(id, data);
+    const updatedUser = await userRepository.updateById(id, data);
+
+    logger.info(`Usuario actualizado correctamente. ID: ${id}`);
+
+    return updatedUser;
   }
 
   // Eliminar usuario
   async deleteUser(id) {
+    logger.debug(`Iniciando eliminación de usuario: ${id}`);
+
     const user = await userRepository.deleteById(id);
 
     if (!user) {
@@ -145,6 +166,8 @@ class UserService {
 
       throw new NotFoundError(error.message, error.code);
     }
+
+    logger.info(`Usuario eliminado correctamente. ID: ${id}`);
 
     return user;
   }
