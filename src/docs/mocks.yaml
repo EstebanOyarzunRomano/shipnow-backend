@@ -1,0 +1,449 @@
+paths:
+
+  /api/mocks/users:
+    get:
+      tags:
+        - Mocks
+      summary: Generar usuarios simulados
+      description: >
+        Genera usuarios ficticios mediante Faker sin guardarlos
+        en MongoDB. La cantidad permitida es de 1 a 100.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: Cantidad de usuarios a generar.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Usuarios simulados generados correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MockUser"
+        "400":
+          description: Cantidad inválida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_MOCK_QUANTITY
+                message: La cantidad debe ser un número entero entre 1 y 100
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/mocks/drivers:
+    get:
+      tags:
+        - Mocks
+      summary: Generar repartidores simulados
+      description: >
+        Genera repartidores ficticios mediante Faker sin
+        guardarlos en MongoDB. Los usuarios generados
+        tienen el rol driver.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: Cantidad de repartidores a generar.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Repartidores simulados generados correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MockUser"
+        "400":
+          description: Cantidad inválida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_MOCK_QUANTITY
+                message: La cantidad debe ser un número entero entre 1 y 100
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/mocks/dataset:
+    get:
+      tags:
+        - Mocks
+      summary: Generar dataset simulado
+      description: >
+        Genera un conjunto de usuarios, repartidores,
+        productos, pedidos y entregas ficticias.
+
+        Los datos mantienen relaciones coherentes entre
+        usuarios, productos, pedidos y repartidores.
+
+        Esta operación no guarda información en MongoDB.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: >
+            Cantidad de registros de cada categoría.
+            Se permiten valores enteros entre 1 y 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Dataset simulado generado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    type: object
+                    required: [message, quantity, data]
+                    properties:
+                      message:
+                        type: string
+                        example: Datos simulados generados correctamente
+                      quantity:
+                        description: >
+                          Cantidad solicitada. Cuando se envía
+                          mediante query params, el controlador
+                          devuelve su representación como string.
+                          Cuando se omite, utiliza el valor
+                          numérico predeterminado 10.
+                        oneOf:
+                          - type: string
+                            example: "2"
+                          - type: integer
+                            example: 10
+                      data:
+                        type: object
+                        required:
+                          - users
+                          - drivers
+                          - products
+                          - orders
+                          - deliveries
+                        properties:
+                          users:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/MockUser"
+                          drivers:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/MockUser"
+                          products:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/MockProduct"
+                          orders:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/MockOrder"
+                          deliveries:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/MockDelivery"
+        "400":
+          description: Cantidad inválida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_MOCK_QUANTITY
+                message: La cantidad debe ser un número entero entre 1 y 100
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/mocks/seed:
+    post:
+      tags:
+        - Mocks
+      summary: Insertar datos simulados en MongoDB
+      description: >
+        Genera y persiste usuarios, repartidores, pedidos
+        y entregas simuladas en MongoDB.
+
+        Si no existen productos disponibles, el servicio
+        puede crear productos de prueba.
+
+        La inserción utiliza transacciones de MongoDB para
+        mantener la consistencia de los datos.
+
+        Cada operación genera un seedId que permite
+        identificar y eliminar posteriormente los registros.
+      parameters:
+        - in: query
+          name: qty
+          required: false
+          description: Cantidad de registros simulados a insertar.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "201":
+          description: Datos simulados insertados correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    type: object
+                    required:
+                      - message
+                      - seedId
+                      - inserted
+                      - totalInserted
+                    properties:
+                      message:
+                        type: string
+                        example: Datos de prueba insertados correctamente
+                      seedId:
+                        type: string
+                        description: Identificador de la operación de seed.
+                        example: "507f1f77bcf86cd799439011"
+                      inserted:
+                        type: object
+                        required:
+                          - products
+                          - users
+                          - drivers
+                          - orders
+                          - deliveries
+                        properties:
+                          products:
+                            type: integer
+                            minimum: 0
+                            example: 0
+                          users:
+                            type: integer
+                            minimum: 0
+                            example: 2
+                          drivers:
+                            type: integer
+                            minimum: 0
+                            example: 2
+                          orders:
+                            type: integer
+                            minimum: 0
+                            example: 2
+                          deliveries:
+                            type: integer
+                            minimum: 0
+                            example: 2
+                      totalInserted:
+                        type: integer
+                        minimum: 0
+                        example: 8
+        "400":
+          description: >
+            Cantidad inválida, productos requeridos o
+            datos de entrada incorrectos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidQuantity:
+                  summary: Cantidad inválida
+                  value:
+                    status: error
+                    code: INVALID_MOCK_QUANTITY
+                    message: La cantidad debe ser un número entero entre 1 y 100
+                productsRequired:
+                  summary: Productos requeridos
+                  value:
+                    status: error
+                    code: PRODUCTS_REQUIRED
+                    message: Debe existir al menos un producto para generar pedidos
+        "409":
+          description: Conflicto al insertar registros.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: DUPLICATE_RESOURCE
+                message: Ya existe un registro con esos datos únicos
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/mocks:
+    delete:
+      tags:
+        - Mocks
+      summary: Eliminar datos simulados por seedId
+      description: >
+        Elimina los registros simulados asociados a un
+        identificador de seed.
+
+        La eliminación se realiza mediante una transacción
+        de MongoDB y verifica las referencias externas
+        antes de borrar los documentos.
+
+        Los repartidores se almacenan en la colección
+        de usuarios, por lo que se contabilizan dentro
+        del campo deleted.users.
+      parameters:
+        - in: query
+          name: seedId
+          required: true
+          description: Identificador de la operación de seed.
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+            example: "507f1f77bcf86cd799439011"
+      responses:
+        "200":
+          description: Datos simulados eliminados correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    type: object
+                    required:
+                      - message
+                      - seedId
+                      - deleted
+                      - totalDeleted
+                    properties:
+                      message:
+                        type: string
+                        example: Datos simulados eliminados correctamente
+                      seedId:
+                        type: string
+                        example: "507f1f77bcf86cd799439011"
+                      deleted:
+                        type: object
+                        required:
+                          - products
+                          - users
+                          - orders
+                          - deliveries
+                        properties:
+                          products:
+                            type: integer
+                            minimum: 0
+                            example: 0
+                          users:
+                            type: integer
+                            minimum: 0
+                            example: 4
+                          orders:
+                            type: integer
+                            minimum: 0
+                            example: 2
+                          deliveries:
+                            type: integer
+                            minimum: 0
+                            example: 2
+                      totalDeleted:
+                        type: integer
+                        minimum: 0
+                        example: 8
+        "400":
+          description: seedId obligatorio o inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_SEED_ID
+                message: El seedId es obligatorio y debe ser un identificador válido
+        "404":
+          description: No existen registros asociados al seedId.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: SEED_NOT_FOUND
+                message: No existen registros para el seedId indicado
+        "409":
+          description: >
+            No es posible eliminar los datos porque existen
+            referencias externas.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: SEED_HAS_EXTERNAL_REFERENCES
+                message: No se pueden eliminar los mocks porque existen registros externos que los referencian
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

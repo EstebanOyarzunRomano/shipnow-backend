@@ -1,0 +1,59 @@
+paths:
+  /api/mocks/orders:
+    get:
+      tags:
+        - Orders
+        - Mocks
+      summary: Generar pedidos simulados
+      description: >
+        Genera pedidos ficticios sin persistirlos en MongoDB.
+        Cada pedido contiene un usuario, un producto, una cantidad,
+        un estado, una prioridad, un total y una dirección de entrega.
+        Los identificadores generados no necesariamente corresponden
+        a registros existentes en la base de datos.
+      parameters:
+        - name: qty
+          in: query
+          required: false
+          description: Cantidad de pedidos a generar (entre 1 y 100).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 5
+      responses:
+        "200":
+          description: Pedidos simulados generados correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - payload
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MockOrder"
+        "400":
+          description: Cantidad de registros inválida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_MOCK_QUANTITY
+                message: La cantidad debe ser un número entero entre 1 y 100
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

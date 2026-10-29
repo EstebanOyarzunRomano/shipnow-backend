@@ -1,71 +1,95 @@
-# ShipNow Backend
-API REST desarrollada con **Node.js, Express, MongoDB Atlas y Mongoose** para el proyecto ShipNow de Backend III. Incluye arquitectura por capas, mocks, seed transaccional, manejo centralizado de errores, logging con Winston y pruebas automatizadas con Jest y Supertest.
+# ShipNow Backend — Backend III
 
-El proyecto utiliza una **arquitectura por capas** y cuenta con gestión de usuarios y productos (Módulo 1), además de **mocking y carga controlada de datos de prueba** (Módulo 2) para usuarios, repartidores, productos, pedidos y entregas.
+API REST desarrollada con **Node.js, Express, MongoDB Atlas y Mongoose**. El proyecto aplica arquitectura por capas e incorpora gestión de usuarios y productos, generación de datos simulados, inserción y limpieza transaccional de datos de prueba, manejo centralizado de errores, logging con Winston, pruebas automatizadas y **documentación interactiva Swagger/OpenAPI 3.0.3**.
 
 ## Tecnologías
-- Node.js y Express
-- MongoDB Atlas y Mongoose
-- @faker-js/faker con localización `fakerES` (datos simulados)
-- dotenv (variables de entorno)
-- Nodemon (desarrollo)
-- Winston (logging centralizado)
-- winston-daily-rotate-file (rotación y retención de logs)
-- Jest y Supertest (pruebas automatizadas)
+
+- **Node.js 20** y **Express**: servidor y API REST.
+- **MongoDB Atlas** y **Mongoose**: persistencia, validaciones, relaciones y transacciones.
+- **@faker-js/faker** (`fakerES`): generación de datos simulados.
+- **dotenv**: configuración mediante variables de entorno.
+- **Nodemon**: ejecución en desarrollo.
+- **Winston** y **winston-daily-rotate-file**: logging y rotación de archivos.
+- **Jest** y **Supertest**: pruebas automatizadas.
+- **swagger-jsdoc** y **swagger-ui-express**: especificación OpenAPI y documentación interactiva.
 
 ## Arquitectura
+
 ```text
-Router → Controller → Service → Repository → Model → MongoDB
+Petición HTTP
+     ↓
+   Router
+     ↓
+ Controller
+     ↓
+  Service
+     ↓
+ Repository
+     ↓
+   Model
+     ↓
+  MongoDB
 ```
-- **Router:** define rutas HTTP y las conecta con sus controladores, sin lógica de negocio.
-- **Controller:** interpreta parámetros, invoca servicios y construye respuestas HTTP. Sus métodos están envueltos con `asyncHandler`, que deriva automáticamente los errores al middleware global.
-- **Service:** aplica reglas de negocio, validaciones y generación de datos simulados.
-- **Repository:** encapsula consultas e inserciones en MongoDB mediante Mongoose.
-- **Model:** define esquemas, relaciones y restricciones de los documentos.
-- **Middlewares:** `asyncHandler` captura errores de los Controllers y los envía a `next(error)`; los middlewares de ruta no encontrada y de errores generan respuestas JSON centralizadas.
-- **Diccionario de errores:** centraliza códigos y mensajes reutilizados en las capas de la aplicación.
 
-Los endpoints GET de mocking generan datos **en memoria** y no los insertan en la base. Los endpoints de seed y limpieza usan repositorios y transacciones para persistir o eliminar datos relacionados.
+- **Router:** registra rutas y métodos HTTP.
+- **Controller:** obtiene parámetros y datos de entrada, invoca servicios y construye respuestas.
+- **Service:** concentra reglas de negocio y validaciones.
+- **Repository:** encapsula operaciones de persistencia mediante Mongoose.
+- **Model:** define esquemas, restricciones y relaciones.
+- **Middlewares:** gestionan errores asíncronos, rutas inexistentes y respuestas de error uniformes.
+- **Documentación:** los archivos YAML describen los endpoints y esquemas sin mezclar la especificación con la lógica de negocio.
 
-## Estructura del proyecto
+Los controladores utilizan `asyncHandler` para propagar excepciones al middleware global. Las operaciones de mocking sin persistencia se generan en memoria; la carga y limpieza de datos utilizan repositorios y transacciones MongoDB.
+
+## Estructura principal
+
 ```text
 src/
 ├── config/
-│   ├── db.js
-│   ├── env.config.js
-│   └── logger.js
+│   ├── db.js
+│   ├── env.config.js
+│   ├── logger.js
+│   └── swagger.js
 ├── constants/
-│   ├── error-codes.js
-│   └── index.js
+│   ├── error-codes.js
+│   └── index.js
 ├── controllers/
-│   ├── mocks.controller.js
-│   ├── products.controller.js
-│   └── users.controller.js
+│   ├── mocks.controller.js
+│   ├── products.controller.js
+│   └── users.controller.js
+├── docs/
+│   ├── deliveries.yaml
+│   ├── logger.yaml
+│   ├── mocks.yaml
+│   ├── orders.yaml
+│   ├── products.yaml
+│   ├── schemas.yaml
+│   └── users.yaml
 ├── errors/
-│   └── app.error.js
+│   └── app.error.js
 ├── middlewares/
-│   ├── asyncHandler.js
-│   ├── error.middleware.js
-│   └── notFound.middleware.js
+│   ├── asyncHandler.js
+│   ├── error.middleware.js
+│   └── notFound.middleware.js
 ├── models/
-│   ├── delivery.model.js
-│   ├── order.model.js
-│   ├── product.model.js
-│   └── user.model.js
+│   ├── delivery.model.js
+│   ├── order.model.js
+│   ├── product.model.js
+│   └── user.model.js
 ├── repositories/
-│   ├── deliveries.repository.js
-│   ├── orders.repository.js
-│   ├── products.repository.js
-│   └── users.repository.js
+│   ├── deliveries.repository.js
+│   ├── orders.repository.js
+│   ├── products.repository.js
+│   └── users.repository.js
 ├── routes/
-│   ├── logger.router.js
-│   ├── mocks.router.js
-│   ├── products.router.js
-│   └── users.router.js
+│   ├── logger.router.js
+│   ├── mocks.router.js
+│   ├── products.router.js
+│   └── users.router.js
 ├── services/
-│   ├── mocks.service.js
-│   ├── products.service.js
-│   └── users.service.js
+│   ├── mocks.service.js
+│   ├── products.service.js
+│   └── users.service.js
 ├── app.js
 └── server.js
 
@@ -74,594 +98,392 @@ tests/
 └── logger-file.test.js
 ```
 
-`server.js` carga las variables de entorno antes de inicializar dependencias, conecta con MongoDB e inicia el servidor. `app.js` configura Express, los routers, el middleware de rutas inexistentes y el manejador global de errores, en ese orden.
+`server.js` carga la configuración, conecta con MongoDB e inicia el servidor. `app.js` configura Express, Swagger UI, los routers y, al final, los middlewares de rutas inexistentes y errores.
 
-## Instalación y configuración
-1\. Clonar el repositorio:
+## Instalación y ejecución
 
-   ```bash
-   git clone https://github.com/EstebanOyarzunRomano/shipnow-backend.git
-   cd shipnow-backend
-   ```
-2\. Instalar las dependencias:
-   ```bash
-   npm install
-   ```
-3\. Crear `.env` a partir de `.env.example`:
-   ```env
-   PORT=8080
-   MONGODB_URI=TU_URI_DE_MONGODB
-   NODE_ENV=development
-   ```
-   Reemplazar `TU_URI_DE_MONGODB` por una cadena de conexión válida a una **base de desarrollo/pruebas**. No subir `.env` ni credenciales a GitHub.
-4\. Iniciar el servidor:
-   ```bash
-   npm run dev
-   ```
-   O ejecutar en modo normal:
-   ```bash
-   npm start
-   ```
-Con `PORT=8080`, la API estará disponible en `http://localhost:8080`.
-## Módulo 1 — Usuarios y productos
-### Endpoints de productos
-\| Método | Endpoint | Descripción |
-\|---|---|---|
-\| GET | `/api/products` | Listar productos; filtros opcionales `status` y `onlyAvailable` |
-\| GET | `/api/products/:id` | Obtener producto por ID |
-\| POST | `/api/products` | Crear producto con body JSON |
-\| PUT | `/api/products/:id` | Actualizar producto |
-\| DELETE | `/api/products/:id` | Eliminar producto |
-Ejemplo de creación:
-```http
+**1. Clonar el repositorio**
 
-POST /api/products
-
-Content-Type: application/json
-
+```bash
+git clone https://github.com/EstebanOyarzunRomano/shipnow-backend.git
+cd shipnow-backend
 ```
-```json
 
-{
+**2. Instalar dependencias**
 
-  "name": "Notebook Lenovo",
-
-  "description": "Notebook para uso profesional",
-
-  "price": 850000,
-
-  "stock": 10
-
-}
-
-```
-El estado del producto se determina automáticamente a partir de su stock: `available` si es mayor que cero y `out_of_stock` si es cero. `onlyAvailable=true` devuelve productos disponibles con stock positivo y tiene prioridad sobre el filtro `status`.
-### Endpoints de usuarios
-\| Método | Endpoint | Descripción |
-\|---|---|---|
-\| GET | `/api/users` | Listar usuarios; filtro opcional `role` |
-\| GET | `/api/users/:id` | Obtener usuario por ID |
-\| POST | `/api/users` | Crear usuario con body JSON |
-\| PUT | `/api/users/:id` | Actualizar usuario |
-\| DELETE | `/api/users/:id` | Eliminar usuario |
-Ejemplo de creación:
-```http
-
-POST /api/users
-
-Content-Type: application/json
-
-```
-```json
-
-{
-
-  "firstName": "Ana",
-
-  "lastName": "Pérez",
-
-  "email": "ana@example.com"
-
-}
-
-```
-Si no se indica `role`, se asigna `user`. Los emails se normalizan a minúsculas y deben ser únicos. Los roles válidos son `admin`, `user` y `driver`.
-## Módulo 2 — Mocking y carga de datos de prueba
-El router `/api/mocks` genera información ficticia mediante `@faker-js/faker`, utilizando `fakerES` para nombres y direcciones en español. Las descripciones de productos se construyen con plantillas en español. La generación de datos, las reglas de negocio y la persistencia están separadas mediante la arquitectura por capas.
-### Endpoints de mocking
-| Método | Endpoint | Resultado | ¿Modifica MongoDB? |
-|---|---|---|---|
-| GET | `/api/mocks/users?qty=3` | Usuarios con rol `user` | No |
-| GET | `/api/mocks/drivers?qty=3` | Repartidores con rol `driver` | No |
-| GET | `/api/mocks/orders?qty=3` | Pedidos simulados | No |
-| GET | `/api/mocks/deliveries?qty=3` | Entregas simuladas | No |
-| GET | `/api/mocks/dataset?qty=3` | Dataset relacionado de las cinco entidades | No |
-| POST | `/api/mocks/seed?qty=3` | Inserta datos de prueba relacionados y devuelve `seedId` | Sí |
-| DELETE | `/api/mocks?seedId=...` | Elimina exclusivamente los registros de ese seed, si no hay referencias externas | Sí |
-`qty` es opcional, su valor predeterminado es `10` y acepta únicamente enteros entre **1 y 100**. Los valores inválidos responden HTTP `400` con código `INVALID_MOCK_QUANTITY`. En los endpoints que reciben `qty`, la cantidad se aplica a cada entidad generada. El seed crea `qty` usuarios, `qty` repartidores, `qty` pedidos y `qty` entregas; **solo crea productos si no encuentra productos disponibles**.
-### Generación en memoria
-```http
-
-GET http://localhost:8080/api/mocks/users?qty=2
-
-```
-Respuesta ilustrativa `200 OK` (los datos cambian en cada ejecución):
-```json
-
-{
-
-  "status": "success",
-
-  "payload": [
-
-    {
-
-      "firstName": "Ana",
-
-      "lastName": "Pérez",
-
-      "email": "ana.perez@example.com",
-
-      "role": "user"
-
-    },
-
-    {
-
-      "firstName": "Luis",
-
-      "lastName": "Gómez",
-
-      "email": "luis.gomez@example.com",
-
-      "role": "user"
-
-    }
-
-  ]
-
-}
-
-```
-Para generar un conjunto completo y relacionado:
-```http
-
-GET http://localhost:8080/api/mocks/dataset?qty=3
-
-```
-Estructura ilustrativa de la respuesta:
-```json
-
-{
-
-  "status": "success",
-
-  "payload": {
-
-    "message": "Datos simulados generados correctamente",
-
-    "quantity": 3,
-
-    "data": {
-
-      "users": [],
-
-      "drivers": [],
-
-      "products": [],
-
-      "orders": [],
-
-      "deliveries": []
-
-    }
-
-  }
-
-}
-
-```
-**Nota:** los arreglos vacíos representan solamente la estructura del ejemplo; una respuesta real con `qty=3` incluye tres registros por entidad.
-En el dataset relacionado:
-- `orders[].user` referencia un `_id` presente en `users`.
-- `orders[].products[].product` referencia un `_id` presente en `products`.
-- `deliveries[].order` referencia un `_id` presente en `orders`.
-- `deliveries[].driver` referencia un `_id` presente en `drivers`, cuyos usuarios tienen rol `driver`.
-- Los pedidos usan productos disponibles (`stock > 0`, `status: "available"`) y calculan `total` a partir de precio y cantidad.
-- El estado de cada producto se deriva de su stock mediante `PRODUCT_STATUS`.
-- Los estados de las entregas se generan de forma coherente con los pedidos: `pending` → `pending`, `confirmed` → `assigned`, `in_transit` → `in_progress`, `delivered` → `completed` y `cancelled` → `failed` en los casos simulados con repartidor.
-Los endpoints individuales `/orders` y `/deliveries` producen referencias ficticias con formato MongoDB, pero no crean los documentos referenciados ni comparten necesariamente identificadores entre peticiones. Para comprobar relaciones completas sin persistencia, utilizar `/dataset`.
-### Carga de datos de prueba (seed)
-**Advertencia:** este endpoint inserta documentos en MongoDB. Ejecutarlo únicamente contra una **base de desarrollo o pruebas**.
-```http
-
-POST http://localhost:8080/api/mocks/seed?qty=2
-
-```
-No requiere body. Respuesta ilustrativa `201 Created` **cuando ya existen productos disponibles**:
-```json
-
-{
-
-  "status": "success",
-
-  "payload": {
-
-    "message": "Datos de prueba insertados correctamente",
-
-    "seedId": "6ad28272051fdd9fa12517b6",
-
-    "inserted": {
-
-      "products": 0,
-
-      "users": 2,
-
-      "drivers": 2,
-
-      "orders": 2,
-
-      "deliveries": 2
-
-    },
-
-    "totalInserted": 8
-
-  }
-
-}
-
-```
-El `seedId` es diferente en cada ejecución y se guarda en los documentos generados para permitir su limpieza posterior. El servicio asigna emails únicos por ejecución.
-**Seed autosuficiente:** si existen productos con `status: "available"` y `stock > 0`, los reutiliza sin etiquetarlos ni modificar su stock. Si no encuentra ninguno, genera e inserta `qty` productos disponibles dentro de la misma transacción. En ese caso, para `qty=2`, `inserted.products` vale `2` y `totalInserted` vale `10`.
-El proceso:
-1\. Valida `qty` y genera un `seedId`.
-2\. Busca productos disponibles; si no existen, genera productos y los inserta.
-3\. Inserta usuarios y repartidores, conservando sus `_id` reales.
-4\. Crea pedidos vinculados a usuarios y productos disponibles, calculando sus totales.
-5\. Crea entregas vinculadas a los pedidos y repartidores insertados, con estados coherentes.
-6\. Ejecuta las inserciones mediante `session.withTransaction()` y devuelve el resumen.
-Las transacciones requieren una instancia de MongoDB compatible, como MongoDB Atlas con replica set. Si falla una operación transaccional, se revierten los cambios de esa transacción.
-### Limpieza controlada por `seedId`
-```http
-
-DELETE http://localhost:8080/api/mocks?seedId=6ad28272051fdd9fa12517b6
-
-```
-No requiere body. Respuesta ilustrativa `200 OK` cuando el seed tiene dos usuarios (uno común y un repartidor), un pedido y una entrega:
-```json
-
-{
-
-  "status": "success",
-
-  "payload": {
-
-    "message": "Datos simulados eliminados correctamente",
-
-    "seedId": "6ad28272051fdd9fa12517b6",
-
-    "deleted": {
-
-      "products": 0,
-
-      "users": 2,
-
-      "orders": 1,
-
-      "deliveries": 1
-
-    },
-
-    "totalDeleted": 4
-
-  }
-
-}
-
-```
-La limpieza:
-1\. Valida que `seedId` sea un identificador válido.
-2\. Recupera los usuarios, productos, pedidos y entregas etiquetados con ese `seedId`.
-3\. Devuelve `404 SEED_NOT_FOUND` si no encuentra registros.
-4\. Comprueba si pedidos o entregas **externos a ese seed** referencian documentos que se pretende eliminar. Si existen, responde `409 SEED_HAS_EXTERNAL_REFERENCES` y **no elimina el seed**.
-5\. Si no hay conflictos, elimina primero las entregas, después los pedidos, usuarios y productos del seed, todo dentro de `session.withTransaction()`.
-La limpieza no elimina productos existentes reutilizados por el seed, ni documentos sin ese `seedId`. Los registros creados antes de implementar el campo `seedId` tampoco son alcanzados por esta operación.
-**Seguridad:** `POST /api/mocks/seed` y `DELETE /api/mocks` son operaciones de desarrollo/pruebas. No deben exponerse en producción sin autenticación, autorización y restricciones de entorno.
-### Verificación en MongoDB Atlas
-En **Browse Collections**:
-- `users`: verificar usuarios con roles `user` y `driver`, y su `seedId`.
-- `products`: verificar `stock`, `status` y, si fueron creados por el seed, su `seedId`.
-- `orders`: verificar referencias `user` y `products.product`, estados, prioridades, total, dirección y `seedId`.
-- `deliveries`: verificar `order`, `driver`, estado, fechas y `seedId`.
-Para verificar referencias externas, los campos referenciales deben almacenarse como **BSON ObjectId**, no como objetos JSON ordinarios con una propiedad `$oid`.
-### Modelos involucrados
-- **User:** nombre, apellido, email único, rol y `seedId` opcional. Los repartidores son usuarios con rol `driver`.
-- **Product:** nombre, descripción, precio, stock, estado y `seedId` opcional.
-- **Order:** referencia al usuario, productos con cantidades, estado, prioridad, total, dirección y `seedId` opcional.
-- **Delivery:** referencia única a pedido, repartidor opcional, estado, fechas y `seedId` opcional.
-## Constantes del dominio
-Definidas en `src/constants/index.js` mediante `Object.freeze()`:
-\| Constante | Valores |
-\|---|---|
-\| `USER_ROLES` | `admin`, `user`, `driver` |
-\| `PRODUCT_STATUS` | `available`, `out_of_stock` |
-\| `ORDER_STATUS` | `pending`, `confirmed`, `in_transit`, `delivered`, `cancelled` |
-\| `ORDER_PRIORITY` | `low`, `medium`, `high` |
-\| `DELIVERY_STATUS` | `pending`, `assigned`, `in_progress`, `completed`, `failed` |
-Los modelos y el servicio de mocking reutilizan estas constantes para evitar valores de dominio escritos directamente en distintos archivos.
-## Módulo 3 — Manejo profesional de errores
-El módulo incorpora errores personalizados, un diccionario de códigos y un middleware global para responder de forma uniforme ante errores de validación, recursos inexistentes, conflictos y fallas inesperadas. Los Controllers utilizan `asyncHandler` para capturar excepciones y promesas rechazadas sin repetir bloques `try/catch`. El wrapper deriva los errores mediante `next(error)` al middleware global, mientras que los Services aplican las reglas de negocio y lanzan errores tipados.
-### Propagación automática de errores con `asyncHandler`
-El archivo `src/middlewares/asyncHandler.js` contiene un wrapper reutilizable que ejecuta los métodos de los Controllers y envía las excepciones al manejador global:
-```javascript
-
-const asyncHandler = (fn) => (req, res, next) =>
-
-  Promise.resolve().then(() => fn(req, res, next)).catch(next);
-
-export default asyncHandler;
-
-```
-Los métodos de `users.controller.js`, `products.controller.js` y `mocks.controller.js` se envuelven con `asyncHandler`. De este modo, se eliminaron **17 bloques `try/catch` repetidos** sin modificar las respuestas exitosas, los códigos HTTP ni las validaciones de negocio. Se utilizan propiedades de clase con funciones flecha para conservar el contexto de `this` cuando corresponde.
-Flujo ante una excepción: **Controller → `asyncHandler` → `next(error)` → middleware global → respuesta `{ status, code, message }`**.
-### Clases de errores
-Definidas en `src/errors/app.error.js`:
-- `AppError`: clase base de los errores operacionales de la aplicación.
-- `ValidationError`: datos de entrada inválidos (HTTP 400).
-- `NotFoundError`: recursos inexistentes (HTTP 404).
-- `ConflictError`: conflictos de integridad o negocio (HTTP 409).
-El diccionario `src/constants/error-codes.js` centraliza códigos, mensajes y estados HTTP. `src/middlewares/notFound.middleware.js` transforma rutas desconocidas en errores 404, y `src/middlewares/error.middleware.js` procesa errores propios, JSON inválido y errores de Mongoose/MongoDB. Las fallas inesperadas se responden con HTTP 500 sin exponer detalles internos.
-## Formato de respuestas y errores
-### Respuestas exitosas
-Los endpoints de usuarios, productos y mocking devuelven respuestas exitosas con la estructura:
-```json
-
-{
-
-  "status": "success",
-
-  "payload": {}
-
-}
-
-```
-`payload` puede contener un objeto, un array o un resumen de inserción, según el endpoint. Los GET exitosos responden `200 OK`; las operaciones de creación y el seed responden `201 Created`.
-### Respuestas de error
-Los errores operacionales utilizan un formato consistente:
-```json
-
-{
-
-  "status": "error",
-
-  "code": "USER_NOT_FOUND",
-
-  "message": "Usuario no encontrado"
-
-}
-
-```
-Los códigos y mensajes de errores propios de la aplicación se centralizan en `src/constants/error-codes.js`. Las clases de error tipadas se definen en `src/errors/app.error.js` y el middleware global traduce los errores a respuestas HTTP JSON.
-\| HTTP | Situación | Ejemplo de código |
-\|---|---|---|
-\| 400 Bad Request | Cantidad de mocks inválida | `INVALID_MOCK_QUANTITY` |
-| 400 Bad Request | `seedId` ausente o inválido | `INVALID_SEED_ID` |
-\| 400 Bad Request | JSON malformado | `INVALID_JSON` |
-\| 400 Bad Request | Precio o stock inválido | `INVALID_PRODUCT_PRICE`, `INVALID_PRODUCT_STOCK` |
-\| 400 Bad Request | Email o rol inválido | `USER_EMAIL_REQUIRED`, `INVALID_USER_ROLE` |
-\| 404 Not Found | Ruta inexistente | `ROUTE_NOT_FOUND` |
-\| 404 Not Found | Usuario o producto inexistente | `USER_NOT_FOUND`, `PRODUCT_NOT_FOUND` |
-| 404 Not Found | Seed inexistente o ya eliminado | `SEED_NOT_FOUND` |
-\| 409 Conflict | Email duplicado | `USER_EMAIL_ALREADY_EXISTS` |
-| 409 Conflict | Referencias externas impiden borrar un seed | `SEED_HAS_EXTERNAL_REFERENCES` |
-\| 500 Internal Server Error | Error inesperado del servidor | `INTERNAL_ERROR` |
-Los errores de Mongoose, incluidos `CastError`, errores de validación y claves únicas duplicadas, también se procesan en el middleware global.
-### Ejemplos de errores
-**Ruta inexistente:**
-```http
-
-GET http://localhost:8080/api/noexiste
-
-```
-Respuesta `404 Not Found`:
-```json
-
-{
-
-  "status": "error",
-
-  "code": "ROUTE_NOT_FOUND",
-
-  "message": "La ruta solicitada no existe"
-
-}
-
-```
-**Cantidad inválida:**
-```http
-
-GET http://localhost:8080/api/mocks/users?qty=abc
-
-```
-Respuesta `400 Bad Request`:
-```json
-
-{
-
-  "status": "error",
-
-  "code": "INVALID_MOCK_QUANTITY",
-
-  "message": "La cantidad debe ser un número entero entre 1 y 100"
-
-}
-
-```
-**JSON malformado:** enviar un body como `{roto` con `Content-Type: application/json`. Respuesta `400 Bad Request`:
-```json
-
-{
-
-  "status": "error",
-
-  "code": "INVALID_JSON",
-
-  "message": "El cuerpo de la petición contiene un JSON inválido"
-
-}
-
-```
-## Pruebas manuales y casos sugeridos
-Se verificaron manualmente en Postman casos de cantidades inválidas, errores de usuarios y productos, rutas inexistentes, JSON malformado y la inserción/eliminación de un seed de dos registros por entidad (ocho documentos insertados y ocho eliminados). Los siguientes casos conforman una lista de verificación; algunos requieren pruebas adicionales.
-Utilizar Thunder Client o Postman y una base de datos de pruebas:
-1\. `GET /api/mocks/users?qty=3`: comprobar `200` y tres usuarios con rol `user`.
-2\. `GET /api/mocks/drivers?qty=3`: comprobar tres usuarios con rol `driver`.
-3\. `GET /api/mocks/orders?qty=3` y `GET /api/mocks/deliveries?qty=3`: verificar estados, prioridades y fechas.
-4\. `GET /api/mocks/dataset?qty=3`: comprobar relaciones, totales, stock y estados coherentes, sin persistencia.
-5\. Probar `qty=abc`, `qty=0`, `qty=-1`, `qty=1.5`, `qty=101` y `qty=`: comprobar `400 INVALID_MOCK_QUANTITY`.
-6\. `GET /api/noexiste`: comprobar `404 ROUTE_NOT_FOUND`.
-7\. Enviar JSON malformado con `Content-Type: application/json`: comprobar `400 INVALID_JSON`.
-8\. `GET /api/products` y `GET /api/users`: comprobar `200` y estructura `status` / `payload`.
-9\. `POST /api/mocks/seed?qty=2`: comprobar `201`, `seedId`, cantidades y referencias persistidas.
-10\. Probar el seed en una base sin productos disponibles: verificar creación transaccional de productos con stock positivo.
-11\. `DELETE /api/mocks?seedId=incorrecto`: comprobar `400 INVALID_SEED_ID`.
-12\. `DELETE /api/mocks?seedId=000000000000000000000000`: comprobar `404 SEED_NOT_FOUND`.
-13\. Crear una referencia externa de prueba a un usuario del seed, con tipo BSON `ObjectId`, y comprobar `409 SEED_HAS_EXTERNAL_REFERENCES`. Confirmar que el seed no fue eliminado.
-14\. Eliminar la referencia externa de prueba y repetir el DELETE: comprobar `200`, cantidades eliminadas y conservación de productos reutilizados.
-15\. Repetir el mismo DELETE: comprobar `404 SEED_NOT_FOUND`.
-**Prueba de regresión posterior a `asyncHandler`:** ejecutar `GET /api/mocks/users?qty=abc`, `GET /api/products/123` y una petición con JSON malformado. Confirmar que las respuestas mantienen el código HTTP y el formato `{ status, code, message }`. Probar también `GET /api/users` y `GET /api/products` para comprobar que siguen devolviendo `200 OK`.
-No utilizar documentos de producción para las pruebas de inserción, conflictos o limpieza.
-## Módulo 4 — Logging y monitoreo básico
-ShipNow utiliza **Winston** como logger centralizado (`src/config/logger.js`) y **winston-daily-rotate-file** para conservar registros de errores con rotación. Los eventos se registran con fecha, hora, nivel y mensaje. El logger se integra con el inicio del servidor, la conexión a MongoDB, el middleware global de errores, las operaciones de mocks y seed, y los servicios de usuarios y productos.
-### Niveles de logging
-| Nivel | Prioridad | Uso |
-|---|---:|---|
-| `fatal` | 0 | Fallas críticas, por ejemplo problemas de arranque. |
-| `error` | 1 | Errores inesperados y fallas del servidor. |
-| `warning` | 2 | Errores operacionales, validaciones y recursos inexistentes. |
-| `info` | 3 | Eventos exitosos relevantes, como conexión a MongoDB o generación de mocks. |
-| `http` | 4 | Eventos HTTP de diagnóstico. |
-| `debug` | 5 | Información detallada para depuración. |
-Los niveles son personalizados y se ordenan de mayor a menor gravedad. En Winston, un transporte configurado en un nivel registra ese nivel y todos los de mayor gravedad.
-### Configuración por entorno
-| Entorno | Niveles mostrados en consola | Endpoint de prueba |
-|---|---|---|
-| `NODE_ENV=development` | `fatal`, `error`, `warning`, `info`, `http`, `debug` | Disponible |
-| `NODE_ENV=production` | `fatal`, `error`, `warning`, `info` | No disponible (`404`) |
-El archivo `.env` debe definir `NODE_ENV` y `server.js` carga `dotenv/config` antes de importar la aplicación, de modo que la configuración de Express y Winston utilice el entorno correcto desde el inicio. La configuración de entorno también admite `test`; el logger usa el perfil no productivo cuando el entorno no es `production`.
-### Endpoint de prueba
-Con `NODE_ENV=development` y el servidor iniciado:
-```http
-
-GET http://localhost:8080/api/logger-test
-
-```
-Respuesta esperada (`200 OK`):
-```json
-
-{
-
-  "status": "success",
-
-  "message": "Prueba del logger ejecutada correctamente",
-
-  "levels": ["debug", "http", "info", "warning", "error", "fatal"]
-
-}
-
-```
-La petición genera un evento de cada nivel. En producción la ruta no se registra y responde `404 ROUTE_NOT_FOUND`; se verificó manualmente este comportamiento. **El endpoint es una herramienta interna de diagnóstico, no una operación de negocio.**
-### Persistencia y rotación
-Los errores se guardan en la carpeta `logs/` de la raíz del proyecto, creada automáticamente cuando se inicializa el logger. El transporte de archivos utiliza:
-```text
-
-logs/
-
-├── error-YYYY-MM-DD.log
-
-└── .\<archivo-de-auditoría-de-rotación>
-
-```
-- Solo se persisten los niveles **`error` y `fatal`**; `warning`, `info`, `http` y `debug` no se escriben en el archivo de errores.
-- Los archivos contienen timestamp, nivel y mensaje, sin códigos ANSI de color.
-- Rotación configurada por **fecha diaria**, con tamaño máximo de **10 MB** por archivo y retención de **14 días** (`maxSize: "10m"`, `maxFiles: "14d"`).
-- El archivo de auditoría es administrado automáticamente por `winston-daily-rotate-file`.
-- La escritura de `error` y `fatal` fue comprobada manualmente; la rotación efectiva por fecha o tamaño **no se ensayó**.
-Ejemplo de registro:
-```text
-
-2026-10-22 15:04:06 [error] Logger test: error de prueba
-
-2026-10-22 15:04:06 [fatal] Logger test: falla crítica simulada
-
-```
-### Integración con el manejo de errores
-El middleware global conserva el formato JSON `{ status, code, message }` y utiliza Winston para registrar los errores. Los errores operacionales habituales se registran como advertencias; los inesperados como errores. Los fallos críticos del arranque se registran como `fatal`. Los mensajes internos y trazas no deben exponerse al cliente en las respuestas HTTP 500.
-### Observabilidad de usuarios y productos
-Los servicios `users.service.js` y `products.service.js` utilizan el logger centralizado sin alterar sus reglas de negocio ni sus respuestas HTTP:
-| Operación | Nivel | Evento registrado |
-|---|---|---|
-| Consultar listado o recurso por ID | `debug` | Inicio y finalización de la consulta; identificador cuando corresponde |
-| Crear usuario o producto | `info` | Confirmación de creación e ID generado |
-| Actualizar usuario o producto | `debug` / `info` | Inicio de actualización y confirmación exitosa |
-| Eliminar usuario o producto | `debug` / `info` | Inicio de eliminación y confirmación exitosa |
-Los errores siguen registrándose en el middleware global, evitando duplicaciones. No se registran contraseñas, emails ni cuerpos completos de peticiones. Con `NODE_ENV=production`, los mensajes `debug` quedan deshabilitados; los eventos `info` se muestran en consola, pero no se escriben en el archivo exclusivo de errores.
-### Pruebas automatizadas con Jest y Supertest
-El proyecto incluye dos pruebas de regresión enfocadas en observabilidad. Se ejecutan sin iniciar `server.js` ni abrir un puerto HTTP, porque Supertest utiliza directamente la aplicación exportada desde `src/app.js`.
-**Ejecutar las pruebas:**
 ```bash
 npm install
+```
+
+**3. Configurar variables de entorno**
+
+Crear un archivo `.env` a partir de `.env.example`:
+
+```env
+PORT=8080
+MONGODB_URI=TU_URI_DE_MONGODB
+NODE_ENV=development
+```
+
+Utilizar una **base de datos de desarrollo o pruebas**. No subir `.env`, credenciales ni cadenas de conexión privadas al repositorio.
+
+**4. Iniciar la API**
+
+```bash
+npm run dev
+```
+
+Para ejecución normal:
+
+```bash
+npm start
+```
+
+Con `PORT=8080`, la API queda disponible en `http://localhost:8080`.
+
+## Módulo 1 — Usuarios y productos
+
+### Usuarios
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/users` | Listar usuarios; filtro opcional `role` |
+| GET | `/api/users/:id` | Consultar un usuario por ObjectId |
+| POST | `/api/users` | Crear un usuario |
+| PUT | `/api/users/:id` | Actualizar un usuario |
+| DELETE | `/api/users/:id` | Eliminar un usuario |
+
+Ejemplo de creación:
+
+```http
+POST /api/users
+Content-Type: application/json
+```
+
+```json
+{
+  "firstName": "Ana",
+  "lastName": "Pérez",
+  "email": "ana@example.com",
+  "role": "user"
+}
+```
+
+Los roles permitidos son `admin`, `user` y `driver`. El rol predeterminado es `user`. El email se normaliza a minúsculas y debe ser único.
+
+### Productos
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/products` | Listar productos; admite filtros como `status` y `onlyAvailable` |
+| GET | `/api/products/:id` | Consultar un producto por ObjectId |
+| POST | `/api/products` | Crear un producto |
+| PUT | `/api/products/:id` | Actualizar un producto |
+| DELETE | `/api/products/:id` | Eliminar un producto |
+
+Ejemplo de creación:
+
+```http
+POST /api/products
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Notebook Lenovo",
+  "description": "Notebook para uso profesional",
+  "price": 850000,
+  "stock": 5
+}
+```
+
+**Reglas de negocio:** `price` debe ser un número mayor o igual a cero; `stock` debe ser un entero mayor o igual a cero. El servicio exige ambos campos al crear productos. El estado se calcula automáticamente: `available` si `stock > 0` y `out_of_stock` si `stock = 0`. No debe establecerse manualmente mediante el body. El filtro `onlyAvailable=true` selecciona productos disponibles con stock positivo y prevalece sobre un filtro `status` incompatible.
+
+## Módulo 2 — Mocking y seed transaccional
+
+La generación de datos utiliza Faker con localización española. Los endpoints GET generan datos **en memoria**, mientras que POST seed y DELETE realizan operaciones sobre MongoDB.
+
+| Método | Endpoint | Operación | ¿Persiste? |
+|---|---|---|---|
+| GET | `/api/mocks/users?qty=3` | Generar usuarios | No |
+| GET | `/api/mocks/drivers?qty=3` | Generar repartidores | No |
+| GET | `/api/mocks/orders?qty=3` | Generar pedidos | No |
+| GET | `/api/mocks/deliveries?qty=3` | Generar entregas | No |
+| GET | `/api/mocks/dataset?qty=3` | Generar dataset relacionado | No |
+| POST | `/api/mocks/seed?qty=3` | Insertar datos de prueba | Sí |
+| DELETE | `/api/mocks?seedId=...` | Eliminar datos de un seed | Sí |
+
+`qty` es opcional, tiene valor predeterminado `10` y admite enteros de **1 a 100**. Los valores inválidos producen `400 INVALID_MOCK_QUANTITY`.
+
+### Generación individual y dataset
+
+```http
+GET /api/mocks/users?qty=2
+GET /api/mocks/dataset?qty=2
+```
+
+Los generadores individuales de pedidos y entregas producen identificadores ficticios con formato MongoDB, pero **no crean** los documentos referenciados. Para obtener entidades vinculadas entre sí, utilizar `/api/mocks/dataset`.
+
+El dataset genera usuarios, repartidores, productos, pedidos y entregas con referencias coherentes:
+
+- `orders[].user` corresponde a un usuario del dataset.
+- `orders[].products[].product` corresponde a un producto del dataset.
+- `deliveries[].order` corresponde a un pedido del dataset.
+- `deliveries[].driver` corresponde a un repartidor del dataset.
+- Los totales de los pedidos se calculan a partir del precio y la cantidad de los productos.
+- Los estados de entrega son coherentes con los estados de pedido simulados.
+
+La respuesta del dataset contiene `payload.message`, `payload.quantity` y `payload.data`. **Detalle de implementación:** cuando se proporciona `qty` por query string, `payload.quantity` puede devolverse como texto (por ejemplo, `"2"`); si se omite, utiliza el valor numérico predeterminado `10`.
+
+### Inserción transaccional (seed)
+
+```http
+POST /api/mocks/seed?qty=2
+```
+
+No requiere body. Genera un `seedId` y crea usuarios, repartidores, pedidos y entregas relacionados. Si existen productos disponibles, los reutiliza sin etiquetarlos con el nuevo seed ni modificar su stock; si no existen, genera productos disponibles dentro de la misma transacción.
+
+Ejemplo de respuesta `201 Created` cuando ya existen productos disponibles:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "message": "Datos de prueba insertados correctamente",
+    "seedId": "507f1f77bcf86cd799439011",
+    "inserted": {
+      "products": 0,
+      "users": 2,
+      "drivers": 2,
+      "orders": 2,
+      "deliveries": 2
+    },
+    "totalInserted": 8
+  }
+}
+```
+
+La inserción utiliza `session.withTransaction()`. Si una operación transaccional falla, los cambios de esa transacción se revierten. MongoDB debe admitir transacciones (por ejemplo, MongoDB Atlas con replica set).
+
+### Limpieza controlada por seedId
+
+```http
+DELETE /api/mocks?seedId=507f1f77bcf86cd799439011
+```
+
+Elimina únicamente los documentos vinculados al `seedId` indicado, dentro de una transacción. Antes de borrar, verifica si existen referencias externas; si las hay, devuelve `409 SEED_HAS_EXTERNAL_REFERENCES` sin eliminar los registros. Si no encuentra documentos, responde `404 SEED_NOT_FOUND`.
+
+Los repartidores se almacenan como usuarios con rol `driver`; por eso se contabilizan junto con los usuarios en `deleted.users`.
+
+**Precaución:** las operaciones de seed y limpieza modifican MongoDB. Utilizarlas exclusivamente en una base de desarrollo o pruebas. No exponerlas públicamente en producción sin autenticación, autorización y restricciones de entorno.
+
+## Módulo 3 — Manejo centralizado de errores
+
+El proyecto utiliza `AppError`, `ValidationError`, `NotFoundError` y `ConflictError`, junto con el diccionario `src/constants/error-codes.js`. El wrapper `asyncHandler` propaga errores de controladores al middleware global.
+
+Formato de respuesta exitosa habitual:
+
+```json
+{
+  "status": "success",
+  "payload": {}
+}
+```
+
+Formato de error:
+
+```json
+{
+  "status": "error",
+  "code": "PRODUCT_NOT_FOUND",
+  "message": "Producto no encontrado"
+}
+```
+
+| HTTP | Situación | Código de ejemplo |
+|---|---|---|
+| 400 | Cantidad de mocks inválida | `INVALID_MOCK_QUANTITY` |
+| 400 | `seedId` inválido | `INVALID_SEED_ID` |
+| 400 | JSON malformado | `INVALID_JSON` |
+| 400 | Precio o stock inválido | `INVALID_PRODUCT_PRICE`, `INVALID_PRODUCT_STOCK` |
+| 400 | Datos, email o rol inválidos | `INVALID_DATA`, `USER_EMAIL_REQUIRED`, `INVALID_USER_ROLE` |
+| 400 | Identificador inválido | `INVALID_IDENTIFIER` |
+| 404 | Ruta inexistente | `ROUTE_NOT_FOUND` |
+| 404 | Usuario o producto inexistente | `USER_NOT_FOUND`, `PRODUCT_NOT_FOUND` |
+| 404 | Seed inexistente | `SEED_NOT_FOUND` |
+| 409 | Email duplicado | `USER_EMAIL_ALREADY_EXISTS` |
+| 409 | Referencias externas de un seed | `SEED_HAS_EXTERNAL_REFERENCES` |
+| 500 | Error inesperado | `INTERNAL_ERROR` |
+
+El middleware también procesa errores de Mongoose/MongoDB, como `CastError`, errores de validación y claves únicas duplicadas. Las respuestas `500` no deben revelar trazas ni información interna del servidor.
+
+## Módulo 4 — Logging y pruebas
+
+El logger centralizado utiliza **Winston** y **winston-daily-rotate-file**. Se integra con el inicio del servidor, conexión a MongoDB, servicios, mocking y manejo de errores.
+
+| Nivel | Prioridad | Uso |
+|---|---:|---|
+| `fatal` | 0 | Fallas críticas |
+| `error` | 1 | Errores inesperados |
+| `warning` | 2 | Validaciones y errores operacionales |
+| `info` | 3 | Operaciones exitosas relevantes |
+| `http` | 4 | Diagnóstico HTTP |
+| `debug` | 5 | Depuración detallada |
+
+En desarrollo, la consola permite visualizar todos los niveles; en producción se limita a `fatal`, `error`, `warning` e `info`.
+
+### Endpoint de diagnóstico
+
+```http
+GET /api/logger-test
+```
+
+Respuesta esperada en desarrollo:
+
+```json
+{
+  "status": "success",
+  "message": "Prueba del logger ejecutada correctamente",
+  "levels": ["debug", "http", "info", "warning", "error", "fatal"]
+}
+```
+
+El endpoint está registrado únicamente cuando `NODE_ENV` es distinto de `production`. En producción responde `404 ROUTE_NOT_FOUND` porque la ruta no está habilitada. Los mensajes de `error` y `fatal` de este endpoint son **simulaciones de diagnóstico**.
+
+### Archivos y rotación
+
+Los registros de error se almacenan en `logs/error-YYYY-MM-DD.log`. El transporte de archivos conserva los niveles `error` y `fatal`, con rotación diaria, tamaño máximo configurado de **10 MB** y retención de **14 días**. El archivo de auditoría de rotación se gestiona automáticamente. La escritura fue comprobada; no se ensayó la rotación efectiva por tiempo o tamaño.
+
+La carpeta `logs/` y los archivos `*.log` deben quedar excluidos de Git.
+
+### Pruebas automatizadas
+
+```bash
 npm test
 ```
-El script definido en `package.json` es:
-```json
-"test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
-```
-| Archivo | Verificación |
+
+| Archivo | Objetivo |
 |---|---|
-| `tests/logger.test.js` | `GET /api/logger-test` responde HTTP `200` y devuelve un cuerpo de respuesta. |
-| `tests/logger-file.test.js` | Un mensaje único enviado con `logger.error()` se persiste en el archivo diario de errores dentro de `logs/`. |
+| `tests/logger.test.js` | Verificar la respuesta del endpoint de diagnóstico mediante Supertest |
+| `tests/logger-file.test.js` | Verificar la persistencia de un mensaje `logger.error()` en el archivo diario |
 
-**Resultado verificado el 29/10/2026:** 2 suites aprobadas, 2 tests aprobados, 0 fallidos. Los tests se ejecutaron en aproximadamente 2 segundos. Jest puede mostrar una advertencia de VM Modules experimental y mensajes del transporte de consola de Winston; no representan fallas de las pruebas.
+**Última ejecución registrada (29/10/2026):** 2 suites aprobadas, 2 tests aprobados y 0 fallidos. Estas pruebas cubren observabilidad, no constituyen una suite completa de CRUD ni prueban la rotación efectiva de archivos.
 
-**Alcance:** estas pruebas validan la respuesta HTTP del endpoint de diagnóstico y la persistencia de un error. No constituyen una suite completa de CRUD ni verifican todavía la rotación efectiva por tamaño, la retención temporal o el comportamiento en producción.
+## Módulo 5 — Documentación Swagger / OpenAPI
 
-### Verificación funcional posterior a las mejoras
+La Preentrega 5 incorpora documentación interactiva basada en **OpenAPI 3.0.3**, generada con `swagger-jsdoc` y publicada mediante `swagger-ui-express`.
 
-Se comprobaron manualmente los siguientes escenarios con la API conectada a MongoDB:
-| Petición | Resultado observado | Logging |
-|---|---|---|
-| `GET /api/products` | Respuesta exitosa, tres productos | `debug` de consulta y cantidad encontrada |
-| `GET /api/users` | HTTP `200`, respuesta exitosa | `debug` de inicio y finalización |
-| `POST /api/products` | HTTP `201`, producto temporal creado | `info` con ID generado |
-| `DELETE /api/products/:id` | HTTP `200`, producto temporal eliminado | `debug` de inicio e `info` de confirmación |
+Con el servidor en ejecución, acceder a:
 
-La verificación manual de las operaciones de escritura se realizó sobre un producto temporal, que fue eliminado al terminar. Las operaciones de escritura de usuarios y la actualización de productos no forman parte de estas comprobaciones manuales.
+**http://localhost:8080/api/docs**
 
-### Verificación manual del Módulo 4
-1\. Iniciar la API con `NODE_ENV=development` y ejecutar `GET /api/logger-test`: comprobar `200` y los seis niveles en consola.
+Desde Swagger UI es posible consultar las operaciones, revisar parámetros y esquemas, visualizar códigos de respuesta y ejecutar peticiones con **Try it out → Execute**.
 
-2\. Abrir `logs/error-YYYY-MM-DD.log`: comprobar que aparecen `error` y `fatal`, pero no los niveles menos graves.
+### Organización de la documentación
 
-3\. Ejecutar `GET /api/mocks/users?qty=5`: comprobar `200` y el registro informativo de generación.
+| Archivo | Contenido |
+|---|---|
+| `src/config/swagger.js` | Metadatos OpenAPI, servidor, etiquetas y carga de archivos YAML |
+| `src/docs/users.yaml` | CRUD de usuarios |
+| `src/docs/products.yaml` | CRUD de productos y filtro de disponibilidad |
+| `src/docs/orders.yaml` | Generación de pedidos simulados |
+| `src/docs/deliveries.yaml` | Generación de entregas simuladas |
+| `src/docs/mocks.yaml` | Usuarios, repartidores, dataset, seed y limpieza |
+| `src/docs/logger.yaml` | Endpoint de diagnóstico de Winston |
+| `src/docs/schemas.yaml` | Esquemas reutilizables de entidades y respuestas |
 
-4\. Ejecutar `GET /api/mocks/users?qty=-5`: comprobar `400 INVALID_MOCK_QUANTITY` y el registro `warning`.
+### Categorías documentadas
 
-5\. Reiniciar con `NODE_ENV=production` y ejecutar `GET /api/logger-test`: comprobar `404 ROUTE_NOT_FOUND` y ausencia de los seis eventos simulados.
+| Etiqueta | Operaciones |
+|---|---|
+| **Users** | Cinco operaciones CRUD de usuarios |
+| **Products** | Cinco operaciones CRUD de productos |
+| **Orders** | `GET /api/mocks/orders` |
+| **Deliveries** | `GET /api/mocks/deliveries` |
+| **Mocks** | Generación de usuarios, repartidores, pedidos, entregas, dataset, seed y limpieza |
+| **Logger** | `GET /api/logger-test` |
 
-6\. Restaurar `NODE_ENV=development` después de la prueba.
+Los endpoints de pedidos y entregas aparecen también bajo **Mocks**, porque generan información simulada. **No existen rutas CRUD independientes `/api/orders` o `/api/deliveries`** en esta etapa del proyecto.
 
-### Archivos excluidos de Git
-El `.gitignore` debe excluir `node_modules/`, `.env` y `logs/` (incluidos los archivos de auditoría), así como los archivos `*.log`. Se mantiene `.env.example` sin credenciales para documentar las variables requeridas. Se verificó con `git status --short` que los archivos generados dentro de `logs/` no aparezcan para seguimiento.
+### Esquemas reutilizables
+
+Se definieron **once esquemas**:
+
+- `User` y `MockUser`.
+- `Product` y `MockProduct`.
+- `OrderItem`, `Order` y `MockOrder`.
+- `Delivery` y `MockDelivery`.
+- `ErrorResponse` y `SuccessResponse`.
+
+Los esquemas `Mock*` distinguen las respuestas generadas en memoria de los documentos persistidos en MongoDB. Los esquemas de error describen el formato uniforme `{ status, code, message }`.
+
+### Parámetros y validaciones documentadas
+
+- `id`: identificador MongoDB de 24 caracteres hexadecimales.
+- `role`: `admin`, `user` o `driver`.
+- `onlyAvailable`: filtro booleano para productos disponibles.
+- `qty`: entero entre 1 y 100, predeterminado 10.
+- `seedId`: identificador de una operación de seed para limpieza controlada.
+- Bodies de creación y actualización de usuarios y productos.
+- Respuestas `200`, `201`, `400`, `404`, `409` y `500` según las operaciones aplicables.
+
+Swagger describe las restricciones de la API, pero **no reemplaza las validaciones del backend**. Los errores reales siguen siendo procesados por los servicios y el middleware global.
+
+### Pruebas manuales realizadas desde Swagger UI
+
+Durante la Preentrega 5 se verificaron:
+
+| Operación | Resultado observado |
+|---|---|
+| `GET /api/users` y CRUD de usuarios | Consultas, creación, actualización, eliminación y recurso inexistente |
+| `GET /api/mocks/users` | Generación de usuarios simulados |
+| `GET /api/mocks/drivers` | Generación de repartidores simulados |
+| `GET /api/mocks/orders` | Pedidos simulados con estados y prioridades válidos |
+| `GET /api/mocks/deliveries` | Entregas simuladas con referencias y fechas |
+| `GET /api/mocks/dataset` | Dataset de entidades relacionadas |
+| `POST /api/mocks/seed` | Inserción transaccional y obtención de `seedId` |
+| `DELETE /api/mocks` | Limpieza del seed y comprobación de `SEED_NOT_FOUND` al repetirla |
+| `GET /api/logger-test` | Respuesta exitosa con los seis niveles de Winston |
+| `GET /api/products` | Listado de productos |
+| `GET /api/products?onlyAvailable=true` | Exclusión de productos sin stock |
+| `POST /api/products` | Creación de producto temporal |
+| `GET /api/products/:id` | Recuperación del producto temporal |
+| `PUT /api/products/:id` | Cambio de stock de 5 a 0 y estado automático `out_of_stock` |
+| `DELETE /api/products/:id` | Eliminación del producto temporal |
+| `GET /api/products/:id` tras eliminarlo | Error `PRODUCT_NOT_FOUND` |
+
+Las operaciones de escritura de prueba se realizaron con registros temporales y se completó su eliminación. La presencia de una respuesta JSON correcta no sustituye la verificación del código HTTP mostrado en Swagger.
+
+### Limitaciones y consideraciones
+
+- Swagger UI está disponible en `/api/docs` mientras la aplicación esté iniciada.
+- El endpoint `/api/logger-test` no se registra en producción, aunque su descripción figure en la especificación.
+- Los endpoints de seed y limpieza **no están protegidos por autenticación en esta etapa**; no deben exponerse en un entorno público sin controles adicionales.
+- La documentación describe los endpoints implementados; no implica la existencia de operaciones CRUD independientes para pedidos o entregas.
+
+## Verificaciones adicionales recomendadas
+
+Antes de una entrega o despliegue:
+
+1. Ejecutar `npm test` y comprobar que las suites finalicen correctamente.
+2. Abrir `/api/docs` y comprobar que las seis categorías y los once esquemas aparezcan sin errores de referencia.
+3. Verificar los códigos HTTP de las respuestas de prueba desde Swagger.
+4. Comprobar que `NODE_ENV=production` deshabilite `/api/logger-test`.
+5. Utilizar una base aislada para probar seed, conflictos de referencias externas y limpieza.
+6. Confirmar que `.env`, `node_modules/` y `logs/` no estén incluidos en Git.
 
 ## Seguridad y control de versiones
-No subir al repositorio:
-- `node_modules/`
-- `.env`
-- Credenciales, secretos o cadenas de conexión privadas
 
-Mantener `.env.example` con valores de referencia sin secretos. Los endpoints de seed y limpieza están destinados al entorno de desarrollo y **no deben exponerse públicamente en producción sin controles de autenticación, autorización y restricciones de entorno**.
+El archivo `.gitignore` debe excluir, como mínimo:
+
+```gitignore
+node_modules/
+.env
+logs/
+*.log
+```
+
+Conservar `.env.example` sin credenciales. No publicar datos privados, secretos, cadenas de conexión ni registros operativos sensibles.
 
 ## Autor
 Esteban Damian Oyarzun Romano

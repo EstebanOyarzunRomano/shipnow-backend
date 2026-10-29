@@ -1,0 +1,372 @@
+
+paths:
+  /api/products:
+    get:
+      tags:
+        - Products
+      summary: Obtener todos los productos
+      description: >
+        Devuelve los productos registrados en MongoDB.
+        El parámetro onlyAvailable=true permite obtener
+        únicamente productos con estado available y stock
+        mayor a cero.
+      operationId: getAllProducts
+      parameters:
+        - in: query
+          name: onlyAvailable
+          required: false
+          description: >
+            Si se envía true, devuelve solamente productos
+            disponibles con stock mayor a cero.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Productos obtenidos correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+        "400":
+          description: Parámetros de consulta inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags:
+        - Products
+      summary: Crear un producto
+      description: >
+        Crea un producto en MongoDB.
+
+        El nombre y el precio son obligatorios.
+        El servicio también exige recibir un stock entero
+        mayor o igual a cero.
+
+        El estado no debe enviarse porque se calcula
+        automáticamente según el stock.
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+                - stock
+              properties:
+                name:
+                  type: string
+                  example: Notebook Lenovo
+                description:
+                  type: string
+                  default: ""
+                  example: Notebook para uso profesional
+                price:
+                  type: number
+                  minimum: 0
+                  example: 850000
+                stock:
+                  type: integer
+                  minimum: 0
+                  example: 5
+            example:
+              name: Notebook Lenovo
+              description: Notebook para uso profesional
+              price: 850000
+              stock: 5
+      responses:
+        "201":
+          description: Producto creado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    $ref: "#/components/schemas/Product"
+        "400":
+          description: Datos, precio o stock inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidData:
+                  summary: Datos inválidos
+                  value:
+                    status: error
+                    code: INVALID_DATA
+                    message: Debe proporcionar datos válidos para crear el producto
+                invalidPrice:
+                  summary: Precio inválido
+                  value:
+                    status: error
+                    code: INVALID_PRODUCT_PRICE
+                    message: El precio debe ser un número mayor o igual a cero
+                invalidStock:
+                  summary: Stock inválido
+                  value:
+                    status: error
+                    code: INVALID_PRODUCT_STOCK
+                    message: El stock debe ser un número entero mayor o igual a cero
+                invalidJson:
+                  summary: JSON malformado
+                  value:
+                    status: error
+                    code: INVALID_JSON
+                    message: El cuerpo de la petición contiene un JSON inválido
+        "409":
+          description: Conflicto por datos únicos duplicados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: DUPLICATE_RESOURCE
+                message: Ya existe un registro con esos datos únicos
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/products/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        description: Identificador MongoDB del producto.
+        schema:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+          example: "507f1f77bcf86cd799439012"
+
+    get:
+      tags:
+        - Products
+      summary: Obtener producto por ID
+      description: Busca un producto mediante su identificador.
+      operationId: getProductById
+      responses:
+        "200":
+          description: Producto encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    $ref: "#/components/schemas/Product"
+        "400":
+          description: Identificador inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_IDENTIFIER
+                message: Identificador o valor inválido
+        "404":
+          description: Producto no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: PRODUCT_NOT_FOUND
+                message: Producto no encontrado
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Products
+      summary: Actualizar un producto
+      description: >
+        Actualiza uno o varios campos de un producto.
+
+        El precio debe ser mayor o igual a cero y el
+        stock debe ser un entero mayor o igual a cero.
+
+        El estado se recalcula automáticamente según
+        el stock nuevo o existente. No puede modificarse
+        directamente mediante el campo status.
+      operationId: updateProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name:
+                  type: string
+                  example: Notebook Lenovo Pro
+                description:
+                  type: string
+                  example: Notebook actualizada para uso profesional
+                price:
+                  type: number
+                  minimum: 0
+                  example: 900000
+                stock:
+                  type: integer
+                  minimum: 0
+                  example: 10
+            example:
+              price: 900000
+              stock: 10
+      responses:
+        "200":
+          description: Producto actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    $ref: "#/components/schemas/Product"
+        "400":
+          description: Datos, identificador, precio o stock inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidData:
+                  summary: Body vacío
+                  value:
+                    status: error
+                    code: INVALID_DATA
+                    message: Debe proporcionar al menos un campo para actualizar
+                invalidPrice:
+                  summary: Precio inválido
+                  value:
+                    status: error
+                    code: INVALID_PRODUCT_PRICE
+                    message: El precio debe ser un número mayor o igual a cero
+                invalidStock:
+                  summary: Stock inválido
+                  value:
+                    status: error
+                    code: INVALID_PRODUCT_STOCK
+                    message: El stock debe ser un número entero mayor o igual a cero
+                invalidId:
+                  summary: Identificador inválido
+                  value:
+                    status: error
+                    code: INVALID_IDENTIFIER
+                    message: Identificador o valor inválido
+        "404":
+          description: Producto no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: PRODUCT_NOT_FOUND
+                message: Producto no encontrado
+        "409":
+          description: Conflicto por datos únicos duplicados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Products
+      summary: Eliminar un producto
+      description: >
+        Elimina un producto por su identificador
+        y devuelve el documento eliminado.
+      operationId: deleteProduct
+      responses:
+        "200":
+          description: Producto eliminado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, payload]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  payload:
+                    $ref: "#/components/schemas/Product"
+        "400":
+          description: Identificador inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_IDENTIFIER
+                message: Identificador o valor inválido
+        "404":
+          description: Producto no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: PRODUCT_NOT_FOUND
+                message: Producto no encontrado
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

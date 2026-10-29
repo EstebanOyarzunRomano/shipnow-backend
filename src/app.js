@@ -1,9 +1,12 @@
 import express from "express";
+import swaggerUi from "swagger-ui-express";
 
 import productsRouter from "./routes/products.router.js";
 import usersRouter from "./routes/users.router.js";
 import mocksRouter from "./routes/mocks.router.js";
 import loggerRouter from "./routes/logger.router.js";
+
+import swaggerSpec from "./config/swagger.js";
 
 import notFoundMiddleware from "./middlewares/notFound.middleware.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
@@ -12,6 +15,9 @@ const app = express();
 
 // Middleware para interpretar JSON
 app.use(express.json());
+
+// Documentación interactiva de la API
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Rutas de la API
 app.use("/api/products", productsRouter);

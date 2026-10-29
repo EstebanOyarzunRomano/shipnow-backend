@@ -1,0 +1,357 @@
+paths:
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Obtener todos los usuarios
+      description: >
+        Devuelve el listado de usuarios registrados.
+        Permite filtrar por rol mediante el parámetro
+        de consulta role.
+      operationId: getAllUsers
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Identificador MongoDB del usuario (ObjectId de 24 caracteres hexadecimales).
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+            example: "507f1f77bcf86cd799439011"
+            enum:
+              - admin
+              - user
+              - driver
+      responses:
+        "200":
+          description: Usuarios obtenidos correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - payload
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INTERNAL_ERROR
+                message: Error interno del servidor
+
+    post:
+      tags:
+        - Users
+      summary: Crear un usuario
+      description: >
+        Registra un nuevo usuario. El email se normaliza
+        eliminando espacios y convirtiéndolo a minúsculas.
+        Si no se especifica un rol, se asigna user.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+                - lastName
+                - email
+              properties:
+                firstName:
+                  type: string
+                  example: Juan
+                lastName:
+                  type: string
+                  example: Pérez
+                email:
+                  type: string
+                  format: email
+                  example: juan@example.com
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - user
+                    - driver
+                  default: user
+      responses:
+        "201":
+          description: Usuario creado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Email obligatorio, rol inválido o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emailRequired:
+                  summary: Email obligatorio
+                  value:
+                    status: error
+                    code: USER_EMAIL_REQUIRED
+                    message: El email es obligatorio
+                invalidRole:
+                  summary: Rol inválido
+                  value:
+                    status: error
+                    code: INVALID_USER_ROLE
+                    message: Rol de usuario inválido
+                invalidData:
+                  summary: Datos inválidos
+                  value:
+                    status: error
+                    code: INVALID_DATA
+                    message: Datos inválidos
+        "409":
+          description: Ya existe un usuario con ese email.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: USER_EMAIL_ALREADY_EXISTS
+                message: Ya existe un usuario con ese email
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        description: Identificador MongoDB del usuario.
+        schema:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+
+    get:
+      tags:
+        - Users
+      summary: Obtener usuario por ID
+      description: Busca un usuario mediante su identificador.
+      operationId: getUserById
+      responses:
+        "200":
+          description: Usuario encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Identificador inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_IDENTIFIER
+                message: Identificador o valor inválido
+        "404":
+          description: Usuario no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: USER_NOT_FOUND
+                message: Usuario no encontrado
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Users
+      summary: Actualizar un usuario
+      description: >
+        Actualiza uno o varios campos de un usuario.
+        Debe enviarse al menos un campo. El email se
+        normaliza y se verifica que no esté duplicado.
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                firstName:
+                  type: string
+                  example: Juan
+                lastName:
+                  type: string
+                  example: Gómez
+                email:
+                  type: string
+                  format: email
+                  example: juangomez@example.com
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - user
+                    - driver
+      responses:
+        "200":
+          description: Usuario actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Datos, rol, email o identificador inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidData:
+                  summary: Body vacío
+                  value:
+                    status: error
+                    code: INVALID_DATA
+                    message: Debe proporcionar al menos un campo para actualizar
+                invalidRole:
+                  summary: Rol inválido
+                  value:
+                    status: error
+                    code: INVALID_USER_ROLE
+                    message: Rol de usuario inválido
+                emptyEmail:
+                  summary: Email vacío
+                  value:
+                    status: error
+                    code: USER_EMAIL_EMPTY
+                    message: El email no puede estar vacío
+                invalidId:
+                  summary: Identificador inválido
+                  value:
+                    status: error
+                    code: INVALID_IDENTIFIER
+                    message: Identificador o valor inválido
+        "404":
+          description: Usuario no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: USER_NOT_FOUND
+                message: Usuario no encontrado
+        "409":
+          description: Email duplicado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: USER_EMAIL_ALREADY_EXISTS
+                message: Ya existe un usuario con ese email
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Users
+      summary: Eliminar un usuario
+      description: >
+        Elimina un usuario por su identificador
+        y devuelve el documento eliminado.
+      operationId: deleteUser
+      responses:
+        "200":
+          description: Usuario eliminado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Identificador inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_IDENTIFIER
+                message: Identificador o valor inválido
+        "404":
+          description: Usuario no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: USER_NOT_FOUND
+                message: Usuario no encontrado
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

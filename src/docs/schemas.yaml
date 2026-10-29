@@ -1,0 +1,418 @@
+components:
+  schemas:
+
+    User:
+      type: object
+      description: Usuario registrado y persistido en MongoDB.
+      required:
+        - firstName
+        - lastName
+        - email
+      properties:
+        _id:
+          type: string
+          description: Identificador MongoDB del usuario.
+          example: "507f1f77bcf86cd799439011"
+        firstName:
+          type: string
+          example: "Juan"
+        lastName:
+          type: string
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          example: "juan@example.com"
+        role:
+          type: string
+          enum:
+            - admin
+            - user
+            - driver
+          default: user
+        seedId:
+          type: string
+          nullable: true
+          default: null
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        __v:
+          type: integer
+          description: Versión interna del documento Mongoose.
+          example: 0
+
+    MockUser:
+      type: object
+      description: >
+        Usuario ficticio generado mediante Faker.
+        No representa necesariamente un registro persistido.
+      required:
+        - firstName
+        - lastName
+        - email
+        - role
+      properties:
+        _id:
+          type: string
+          description: >
+            Identificador generado únicamente cuando el usuario
+            forma parte de un dataset relacionado.
+        firstName:
+          type: string
+          example: "Juan"
+        lastName:
+          type: string
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          example: "juan.perez@example.com"
+        role:
+          type: string
+          enum:
+            - user
+            - driver
+      
+    Product:
+      type: object
+      description: >
+        Producto registrado y persistido en MongoDB.
+        El estado se calcula automáticamente a partir
+        del stock disponible.
+      required:
+        - name
+        - price
+        - stock
+      properties:
+        _id:
+          type: string
+          description: Identificador MongoDB del producto.
+          example: "507f1f77bcf86cd799439012"
+        name:
+          type: string
+          description: Nombre del producto.
+          example: "Notebook Lenovo"
+        description:
+          type: string
+          default: ""
+          example: "Notebook para uso profesional"
+        price:
+          type: number
+          minimum: 0
+          example: 850000
+        stock:
+          type: integer
+          minimum: 0
+          default: 0
+          example: 5
+        status:
+          type: string
+          enum:
+            - available
+            - out_of_stock
+          description: >
+            Estado calculado automáticamente según el stock.
+            Si stock es mayor que cero, el estado es available.
+            Si stock es cero, el estado es out_of_stock.
+          example: available
+        seedId:
+          type: string
+          nullable: true
+          default: null
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        __v:
+          type: integer
+          description: Versión interna del documento Mongoose.
+          example: 0
+
+    MockProduct:
+      type: object
+      description: Producto ficticio generado mediante Faker.
+      required:
+        - name
+        - description
+        - price
+        - stock
+        - status
+      properties:
+        _id:
+          type: string
+          description: >
+            Identificador generado cuando el producto forma
+            parte de un dataset relacionado.
+        name:
+          type: string
+          example: "Notebook"
+        description:
+          type: string
+          example: "Notebook de excelente calidad."
+        price:
+          type: number
+          minimum: 0
+          example: 15000
+        stock:
+          type: integer
+          minimum: 0
+          example: 10
+        status:
+          type: string
+          enum:
+            - available
+            - out_of_stock
+
+    OrderItem:
+      type: object
+      description: Producto incluido en un pedido.
+      required:
+        - product
+        - quantity
+      properties:
+        _id:
+          type: string
+          description: Identificador opcional del subdocumento Mongoose.
+        product:
+          type: string
+          description: Identificador MongoDB del producto.
+          example: "507f1f77bcf86cd799439012"
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+
+    Order:
+      type: object
+      description: Pedido persistido en MongoDB.
+      required:
+        - user
+        - total
+        - deliveryAddress
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439013"
+        user:
+          type: string
+          description: Identificador del usuario.
+          example: "507f1f77bcf86cd799439011"
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - in_transit
+            - delivered
+            - cancelled
+          default: pending
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          default: medium
+        total:
+          type: number
+          minimum: 0
+          example: 15000
+        deliveryAddress:
+          type: string
+          example: "Av. San Martín 1234"
+        seedId:
+          type: string
+          nullable: true
+          default: null
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        __v:
+          type: integer
+          example: 0
+
+    MockOrder:
+      type: object
+      description: >
+        Pedido ficticio generado sin persistencia.
+        Puede incluir un _id cuando pertenece a un dataset.
+      required:
+        - user
+        - products
+        - status
+        - priority
+        - total
+        - deliveryAddress
+      properties:
+        _id:
+          type: string
+          description: Identificador opcional generado para el dataset.
+        user:
+          type: string
+          description: Identificador del usuario simulado.
+          example: "507f1f77bcf86cd799439011"
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - in_transit
+            - delivered
+            - cancelled
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+        total:
+          type: number
+          minimum: 0
+          example: 15000
+        deliveryAddress:
+          type: string
+          example: "Av. San Martín 1234"
+
+    Delivery:
+      type: object
+      description: Entrega persistida en MongoDB.
+      required:
+        - order
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439014"
+        order:
+          type: string
+          description: Identificador del pedido asociado.
+          example: "507f1f77bcf86cd799439013"
+        driver:
+          type: string
+          nullable: true
+          description: Identificador del repartidor asignado.
+          example: "507f1f77bcf86cd799439015"
+        status:
+          type: string
+          enum:
+            - pending
+            - assigned
+            - in_progress
+            - completed
+            - failed
+          default: pending
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        seedId:
+          type: string
+          nullable: true
+          default: null
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        __v:
+          type: integer
+          example: 0
+
+    MockDelivery:
+      type: object
+      description: >
+        Entrega ficticia generada sin persistencia.
+        Su estado depende del estado del pedido simulado.
+      required:
+        - order
+        - status
+        - assignedAt
+        - deliveredAt
+      properties:
+        _id:
+          type: string
+          description: Identificador opcional generado para el dataset.
+        order:
+          type: string
+          description: Identificador del pedido simulado.
+          example: "507f1f77bcf86cd799439013"
+        driver:
+          type: string
+          nullable: true
+          description: Identificador del repartidor simulado.
+          example: "507f1f77bcf86cd799439015"
+        status:
+          type: string
+          enum:
+            - pending
+            - assigned
+            - in_progress
+            - completed
+            - failed
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      description: Respuesta estandarizada de error.
+      required:
+        - status
+        - code
+        - message
+      properties:
+        status:
+          type: string
+          enum:
+            - error
+          example: error
+        code:
+          type: string
+          description: Código de error de la aplicación.
+          example: INVALID_IDENTIFIER
+        message:
+          type: string
+          description: Descripción del error.
+          example: "Identificador o valor inválido"
+
+    SuccessResponse:
+      type: object
+      description: Estructura general de respuesta exitosa.
+      required:
+        - status
+        - payload
+      properties:
+        status:
+          type: string
+          enum:
+            - success
+          example: success
+        payload:
+          description: Datos devueltos por la operación.
+          nullable: true

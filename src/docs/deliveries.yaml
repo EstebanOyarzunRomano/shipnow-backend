@@ -1,0 +1,61 @@
+
+paths:
+  /api/mocks/deliveries:
+    get:
+      tags:
+        - Deliveries
+        - Mocks
+      summary: Generar entregas simuladas
+      description: >
+        Genera entregas ficticias sin almacenarlas en MongoDB.
+        Cada entrega contiene una referencia a un pedido,
+        un repartidor, un estado y fechas de asignación y entrega.
+        El estado generado depende del estado simulado del pedido.
+        Los identificadores no necesariamente corresponden a
+        registros existentes en la base de datos.
+      parameters:
+        - name: qty
+          in: query
+          required: false
+          description: Cantidad de entregas a generar (entre 1 y 100).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 3
+      responses:
+        "200":
+          description: Entregas simuladas generadas correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - payload
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MockDelivery"
+        "400":
+          description: Cantidad de registros inválida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INVALID_MOCK_QUANTITY
+                message: La cantidad debe ser un número entero entre 1 y 100
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

@@ -1,0 +1,92 @@
+
+paths:
+  /api/logger-test:
+    get:
+      tags:
+        - Logger
+      summary: Probar los niveles del sistema de logging
+      description: >
+        Endpoint interno de desarrollo que ejecuta los seis
+        niveles configurados en Winston: debug, http, info,
+        warning, error y fatal.
+
+        Genera mensajes de prueba para verificar el funcionamiento
+        del logger en consola y en los archivos configurados.
+
+        Este endpoint solo está disponible cuando NODE_ENV
+        es distinto de production.
+
+        Los mensajes de error y fatal son simulaciones para
+        probar el sistema de logging; no representan fallas
+        reales de la aplicación.
+      responses:
+        "200":
+          description: Prueba del logger ejecutada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - message
+                  - levels
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  message:
+                    type: string
+                    example: Prueba del logger ejecutada correctamente
+                  levels:
+                    type: array
+                    description: Niveles de logging ejecutados.
+                    items:
+                      type: string
+                      enum:
+                        - debug
+                        - http
+                        - info
+                        - warning
+                        - error
+                        - fatal
+                    example:
+                      - debug
+                      - http
+                      - info
+                      - warning
+                      - error
+                      - fatal
+              example:
+                status: success
+                message: Prueba del logger ejecutada correctamente
+                levels:
+                  - debug
+                  - http
+                  - info
+                  - warning
+                  - error
+                  - fatal
+
+        "404":
+          description: >
+            Endpoint no disponible en producción o ruta inexistente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: ROUTE_NOT_FOUND
+                message: La ruta solicitada no existe
+
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                code: INTERNAL_ERROR
+                message: Error interno del servidor
